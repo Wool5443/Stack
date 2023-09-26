@@ -6,7 +6,7 @@
 
 int main()
 {
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
     size_t canaryShift = sizeof(size_t) - sizeof(unsigned int);
     size_t canary = ((unsigned int)rand() << canaryShift) + ((unsigned int)rand() % (1 << canaryShift));
 
