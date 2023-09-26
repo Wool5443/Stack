@@ -28,6 +28,9 @@ StackOption _stackInit(Owner owner, size_t canary)
     ErrorCode error = EVERYTHING_FINE;
     if (!data)
         error = ERROR_NO_MEMORY;
+
+    for (size_t i = 0; i < stack.capacity; i++)
+        data[i] = POISON;
     
     stack.data = data;
     stack.realDataSize = realDataSize;
@@ -96,12 +99,20 @@ ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Own
         fprintf(where, "    ");
 
         if (data[i] != POISON)
+        {
+            SetConsoleColor(where, GREEN);
             fprintf(where, "*");
+        }
         else
+        {
+            SetConsoleColor(where, RED);
             fprintf(where, " ");
+        }
 
         fprintf(where, "[%zu] = " PRINTF_SPECIFIER "\n", i, data[i]);
     }
+
+    SetConsoleColor(where, WHITE);
 
     fprintf(where, "    Right data canary = %zu\n}\n", _getRightDataCanary(stack));
 
