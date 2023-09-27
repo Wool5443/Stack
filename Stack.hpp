@@ -7,6 +7,8 @@
 
 typedef int StackElement_t;
 
+typedef size_t canary_t;
+
 #define PRINTF_SPECIFIER "%d"
 
 const size_t STACK_GROW_FACTOR = 2;
@@ -17,7 +19,7 @@ const StackElement_t POISON = INT32_MAX;
 
 struct Stack
 {
-    size_t leftCanary;
+    canary_t leftCanary;
 
     size_t realDataSize;
     StackElement_t* data;
@@ -26,7 +28,7 @@ struct Stack
     size_t size;
     size_t capacity;
 
-    size_t rightCanary;
+    canary_t rightCanary;
 };
 
 struct StackOption
@@ -41,7 +43,6 @@ struct StackElementOption
     ErrorCode error;
 };
 
-
 #define StackInit(canary)                                                       \
 ({                                                                              \
     Owner _owner = {__FILE__, __LINE__, __func__};                              \
@@ -52,19 +53,19 @@ struct StackElementOption
 do                                                                              \
 {                                                                               \
     Owner caller = {__FILE__, __LINE__, __func__};                              \
-    _stackDump(where, stack, #stack, &caller, canary);                                  \
+    _stackDump(where, stack, #stack, &caller, canary);                          \
 } while (0);                    
 
-StackOption _stackInit(Owner owner, size_t canary);
+StackOption _stackInit(Owner owner, canary_t canary);
 
-ErrorCode StackDestructor(Stack* stack, size_t canary);
+ErrorCode StackDestructor(Stack* stack);
 
-ErrorCode CheckStackIntegrity(const Stack* stack, size_t canary);
+ErrorCode CheckStackIntegrity(const Stack* stack, canary_t canary);
 
-ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Owner* caller, size_t canary);
+ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Owner* caller, canary_t canary);
 
-ErrorCode Push(Stack* stack, StackElement_t value, size_t canary);
+ErrorCode Push(Stack* stack, StackElement_t value, canary_t canary);
 
-StackElementOption Pop(Stack* stack, size_t canary);
+StackElementOption Pop(Stack* stack, canary_t canary);
 
 #endif

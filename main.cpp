@@ -29,7 +29,7 @@ int main()
 
     StackDump(stderr, &sex, canary);
 
-    StackDestructor(&sex, canary);
+    StackDestructor(&sex);
 
     return 0;
 }

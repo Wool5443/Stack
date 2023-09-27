@@ -1,29 +1,26 @@
 #include "Stack.hpp"
 
-ErrorCode _checkCanary(const Stack* stack, size_t canary);
+ErrorCode _checkCanary(const Stack* stack, canary_t canary);
 
-ErrorCode _stackRealloc(Stack* stack, size_t canary);
+ErrorCode _stackRealloc(Stack* stack, canary_t canary);
 
-size_t _getLeftDataCanary(const Stack* stack);
+canary_t* _getLeftDataCanaryPtr(const StackElement_t* data);
 
-size_t _getRightDataCanary(const Stack* stack);
+canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize);
 
-StackOption _stackInit(Owner owner, size_t canary)
+StackOption _stackInit(Owner owner, canary_t canary)
 {
     Stack stack = {.leftCanary = canary, .owner = owner,
                    .size = 0, .capacity = DEFAULT_CAPACITY, .rightCanary = canary};
 
-    size_t realDataSize = DEFAULT_CAPACITY * sizeof(StackElement_t) + 2 * sizeof(canary);
-    size_t allignmentSize = (8 - (realDataSize - sizeof(canary)) % 8) % 8;
-    realDataSize += allignmentSize;
+    size_t realDataSize = DEFAULT_CAPACITY * sizeof(StackElement_t) + 2 * sizeof(canary_t);
 
     StackElement_t* data = (StackElement_t*)calloc(realDataSize, 1);
+    data = (StackElement_t*)((void*)data + sizeof(canary_t));
 
-    ((size_t*)data)[0] = canary;
+    *_getLeftDataCanaryPtr(data) = canary;
 
-    *(size_t*)((void*)data + realDataSize - sizeof(canary)) = canary;
-
-    data = (StackElement_t*)((void*)data + sizeof(canary));
+    *_getRightDataCanaryPtr(data, realDataSize) = canary;
 
     ErrorCode error = EVERYTHING_FINE;
     if (!data)
@@ -38,19 +35,20 @@ StackOption _stackInit(Owner owner, size_t canary)
     return {stack, error};
 }
 
-ErrorCode StackDestructor(Stack* stack, size_t canary)
+ErrorCode StackDestructor(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
-    free((void*)stack->data - sizeof(canary));
+    free((void*)stack->data - sizeof(canary_t));
     stack->size = POISON;
     stack->capacity = POISON;
     stack->data = NULL;
+    stack->owner = {};
 
     return EVERYTHING_FINE;
 }
 
-ErrorCode CheckStackIntegrity(const Stack* stack, size_t canary)
+ErrorCode CheckStackIntegrity(const Stack* stack, canary_t canary)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
@@ -64,7 +62,7 @@ ErrorCode CheckStackIntegrity(const Stack* stack, size_t canary)
     return EVERYTHING_FINE;
 }
 
-ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Owner* caller, size_t canary)
+ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Owner* caller, canary_t canary)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
@@ -89,7 +87,7 @@ ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Own
             stack->size,
             stack->capacity,
             stack->data,
-            _getLeftDataCanary(stack)
+            *_getLeftDataCanaryPtr(stack->data)
             );
 
     const StackElement_t* data = stack->data;
@@ -114,14 +112,14 @@ ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Own
 
     SetConsoleColor(where, WHITE);
 
-    fprintf(where, "    Right data canary = %zu\n}\n", _getRightDataCanary(stack));
+    fprintf(where, "    Right data canary = %zu\n}\n", *_getRightDataCanaryPtr(stack->data, stack->realDataSize));
 
     _checkCanary(stack, canary);
 
     return EVERYTHING_FINE;
 }
 
-ErrorCode Push(Stack* stack, StackElement_t value, size_t canary)
+ErrorCode Push(Stack* stack, StackElement_t value, canary_t canary)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
@@ -143,7 +141,7 @@ ErrorCode Push(Stack* stack, StackElement_t value, size_t canary)
     return EVERYTHING_FINE;
 }
 
-StackElementOption Pop(Stack* stack, size_t canary)
+StackElementOption Pop(Stack* stack, canary_t canary)
 {
     ErrorCode error = CheckStackIntegrity(stack, canary);
 
@@ -169,7 +167,7 @@ StackElementOption Pop(Stack* stack, size_t canary)
     return {el, error};
 }
 
-ErrorCode _stackRealloc(Stack* stack, size_t canary)
+ErrorCode _stackRealloc(Stack* stack, canary_t canary)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
@@ -179,21 +177,20 @@ ErrorCode _stackRealloc(Stack* stack, size_t canary)
     {
         size_t numberOfElementsToAdd = stack->capacity * (STACK_GROW_FACTOR - 1);
 
-        StackElement_t* oldData = (StackElement_t*)((void*)stack->data - sizeof(canary));
+        StackElement_t* oldData = (StackElement_t*)((void*)stack->data - sizeof(canary_t));
         size_t realDataSize = stack->realDataSize;
-        size_t dataCanary = *(size_t*)oldData;
 
-        *(size_t*)((void*)oldData + realDataSize - sizeof(canary)) = 0;
+        canary_t* oldRightCanaryPtr = _getRightDataCanaryPtr(stack->data, stack->realDataSize);
+        canary_t oldRightCanary = *oldRightCanaryPtr;
+
+        *oldRightCanaryPtr = 0;
 
         realDataSize += numberOfElementsToAdd * sizeof(StackElement_t);
-        size_t allignmentSize = (8 - (realDataSize - sizeof(canary)) % 8) % 8;
-        realDataSize += allignmentSize;
 
         StackElement_t* newData = (StackElement_t*)realloc((void*)oldData, realDataSize);
+        newData = (StackElement_t*)((void*)newData + sizeof(canary_t));
 
-        *(size_t*)((void*)newData + realDataSize - sizeof(canary)) = dataCanary;
-
-        newData = (StackElement_t*)((void*)newData + sizeof(canary));
+        *_getRightDataCanaryPtr(newData, realDataSize) = oldRightCanary;
 
         if (newData == NULL)
             return ERROR_NO_MEMORY;
@@ -213,20 +210,20 @@ ErrorCode _checkCanary(const Stack* stack, size_t canary)
 {
     if (stack->leftCanary != canary ||
         stack->rightCanary != canary ||
-        _getLeftDataCanary(stack) != canary ||
-        _getRightDataCanary(stack) != canary)
+        *_getLeftDataCanaryPtr(stack->data) != canary ||
+        *_getRightDataCanaryPtr(stack->data, stack->realDataSize) != canary)
         MyAssertHard(0, ERROR_DEAD_CANARY);
 
 
     return EVERYTHING_FINE;
 }
 
-size_t _getLeftDataCanary(const Stack* stack)
+canary_t* _getLeftDataCanaryPtr(const StackElement_t* data)
 {
-    return *(size_t*)((void*)stack->data - sizeof(size_t));
+    return (canary_t*)((void*)data - sizeof(canary_t));
 }
 
-size_t _getRightDataCanary(const Stack* stack)
+canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize)
 {
-    return *(size_t*)((void*)stack->data + stack->realDataSize - 2 * sizeof(size_t));
+    return (canary_t*)((void*)data + realDataSize - 2 * sizeof(canary_t));
 }
