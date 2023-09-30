@@ -6,11 +6,7 @@
 
 int main()
 {
-    srand((unsigned int)time(NULL));
-    size_t canaryShift = sizeof(size_t) - sizeof(unsigned int);
-    size_t canary = ((unsigned int)rand() << canaryShift) + ((unsigned int)rand() % (1 << canaryShift));
-
-    StackOption tempStack = StackInit(canary);
+    StackOption tempStack = StackInit();
 
     if (tempStack.error != EVERYTHING_FINE)
     {
@@ -18,18 +14,24 @@ int main()
         return tempStack.error;
 
     }
-    Stack sex = tempStack.stack;
+    Stack* sex = tempStack.stack;
     for (int i = 0; i < 10; i++)
     {
-        Push(&sex, i, canary);
+        Push(sex, i);
     }
-    for (int i = 0; i < 0; i++)
-        printf("%d ", Pop(&sex, canary).value);
+    StackDump(stderr, sex);
+    StackDump(stderr, sex);
+    for (int i = 0; i < 5; i++)
+    {
+        StackElementOption value = Pop(sex);
+        if (value.error == EVERYTHING_FINE)
+            printf(STACK_PRINTF_SPECIFIER " ", value.value);
+        else
+            puts("Empty stack pop");
+    }
     puts("");
 
-    StackDump(stderr, &sex, canary);
-
-    StackDestructor(&sex);
+    StackDestructor(sex);
 
     return 0;
 }

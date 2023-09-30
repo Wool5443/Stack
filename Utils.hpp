@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #define TESTINGs
 
@@ -20,7 +21,7 @@ enum ErrorCode
 {
   EVERYTHING_FINE = 0, ERROR_NULLPTR, ERROR_BAD_NUMBER, ERROR_BAD_FILE, ERROR_OVERLAP,
   ERROR_INDEX_OUT_OF_BOUNDS, ERROR_NO_MEMORY, ERROR_NO_COMPARATOR, ERROR_BAD_SIZE,
-  ERROR_BAD_VALUE, ERROR_DEAD_CANARY
+  ERROR_BAD_VALUE, ERROR_DEAD_CANARY, ERROR_BAD_HASH
 };
 
 /**
@@ -177,5 +178,7 @@ bool CheckInput(void);
  * @param color - @see Color
  */
 void SetConsoleColor(FILE* place, const enum Color color);
+
+unsigned int MurmurHash2A(const void *key, size_t len, uint64_t seed);
 
 #endif

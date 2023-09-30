@@ -1,36 +1,77 @@
+#include <time.h>
 #include "Stack.hpp"
 
-ErrorCode _checkCanary(const Stack* stack, canary_t canary);
+typedef unsigned int hash_t;
 
-ErrorCode _stackRealloc(Stack* stack, canary_t canary);
-
-canary_t* _getLeftDataCanaryPtr(const StackElement_t* data);
-
-canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize);
-
-StackOption _stackInit(Owner owner, canary_t canary)
+static size_t _getRandomCanary()
 {
-    Stack stack = {.leftCanary = canary, .owner = owner,
-                   .size = 0, .capacity = DEFAULT_CAPACITY, .rightCanary = canary};
+    srand((unsigned int)time(NULL));
+    return ((canary_t)rand() << 32) + (canary_t)rand();
+}
+
+static const size_t _CANARY = _getRandomCanary();
+
+struct Stack
+{
+    canary_t leftCanary;
+
+    size_t realDataSize;
+    StackElement_t* data;
+
+    Owner owner;
+    size_t size;
+    size_t capacity;
+
+    hash_t hashData;
+    hash_t hashStack;
+
+    canary_t rightCanary;
+};
+
+static ErrorCode _checkCanary(const Stack* stack);
+
+static ErrorCode _checkHash(Stack* stack);
+
+static ErrorCode _stackRealloc(Stack* stack);
+
+static canary_t* _getLeftDataCanaryPtr(const StackElement_t* data);
+
+static canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize);
+
+static ErrorCode _reHashify(Stack* stack);
+
+StackOption _stackInit(Owner owner)
+{
+    Stack* stack = (Stack*)calloc(1, sizeof(Stack));
+    *stack = 
+    {
+        .leftCanary = _CANARY,
+        .owner = owner,
+        .size = 0,
+        .capacity = DEFAULT_CAPACITY,
+        .rightCanary = _CANARY
+    };
 
     size_t realDataSize = DEFAULT_CAPACITY * sizeof(StackElement_t) + 2 * sizeof(canary_t);
 
     StackElement_t* data = (StackElement_t*)calloc(realDataSize, 1);
     data = (StackElement_t*)((void*)data + sizeof(canary_t));
 
-    *_getLeftDataCanaryPtr(data) = canary;
+    *_getLeftDataCanaryPtr(data) = _CANARY;
 
-    *_getRightDataCanaryPtr(data, realDataSize) = canary;
+    *_getRightDataCanaryPtr(data, realDataSize) = _CANARY;
 
     ErrorCode error = EVERYTHING_FINE;
     if (!data)
         error = ERROR_NO_MEMORY;
 
-    for (size_t i = 0; i < stack.capacity; i++)
+    for (size_t i = 0; i < stack->capacity; i++)
         data[i] = POISON;
     
-    stack.data = data;
-    stack.realDataSize = realDataSize;
+    stack->data = data;
+    stack->realDataSize = realDataSize;
+
+    _reHashify(stack);
 
     return {stack, error};
 }
@@ -44,11 +85,17 @@ ErrorCode StackDestructor(Stack* stack)
     stack->capacity = POISON;
     stack->data = NULL;
     stack->owner = {};
+    stack->hashData = POISON;
+    stack->hashStack = POISON;
+    stack->leftCanary = POISON;
+    stack->rightCanary = POISON;
+    
+    free((void*)stack);
 
     return EVERYTHING_FINE;
 }
 
-ErrorCode CheckStackIntegrity(const Stack* stack, canary_t canary)
+ErrorCode CheckStackIntegrity(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
@@ -56,17 +103,17 @@ ErrorCode CheckStackIntegrity(const Stack* stack, canary_t canary)
         return ERROR_INDEX_OUT_OF_BOUNDS;
     if (!stack->data)
         return ERROR_NO_MEMORY;
+    
+    _checkCanary(stack);
 
-    _checkCanary(stack, canary);
-
-    return EVERYTHING_FINE;
+    return _checkHash(stack);
 }
 
-ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Owner* caller, canary_t canary)
+ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* caller)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
-    ErrorCode error = CheckStackIntegrity(stack, canary);
+    ErrorCode error = CheckStackIntegrity(stack);
 
     fprintf(where, 
             "Stack[%p] \"%s\" from %s(%zu) %s()\n"
@@ -91,8 +138,8 @@ ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Own
             );
 
     const StackElement_t* data = stack->data;
-    size_t size = stack->size;
-    for (size_t i = 0; i < size; i++)
+    size_t capacity = stack->capacity;
+    for (size_t i = 0; i < capacity; i++)
     {
         fprintf(where, "    ");
 
@@ -107,28 +154,30 @@ ErrorCode _stackDump(FILE* where, const Stack* stack, const char* stackName, Own
             fprintf(where, " ");
         }
 
-        fprintf(where, "[%zu] = " PRINTF_SPECIFIER "\n", i, data[i]);
+        fprintf(where, "[%zu] = " STACK_PRINTF_SPECIFIER "\n", i, data[i]);
     }
 
     SetConsoleColor(where, WHITE);
 
     fprintf(where, "    Right data canary = %zu\n}\n", *_getRightDataCanaryPtr(stack->data, stack->realDataSize));
 
-    _checkCanary(stack, canary);
+    _checkCanary(stack);
+
+    stack->data[1] = 38;
 
     return EVERYTHING_FINE;
 }
 
-ErrorCode Push(Stack* stack, StackElement_t value, canary_t canary)
+ErrorCode Push(Stack* stack, StackElement_t value)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
-    ErrorCode error = CheckStackIntegrity(stack, canary);
+    ErrorCode error = CheckStackIntegrity(stack);
 
     if (error != EVERYTHING_FINE)
         return error;
 
-    error = _stackRealloc(stack, canary);
+    error = _stackRealloc(stack);
 
     if (error != EVERYTHING_FINE)
         return error;
@@ -136,14 +185,16 @@ ErrorCode Push(Stack* stack, StackElement_t value, canary_t canary)
     stack->data[stack->size] = value;
     stack->size++;
 
-    _checkCanary(stack, canary);
+    _checkCanary(stack);
+
+    _reHashify(stack);
 
     return EVERYTHING_FINE;
 }
 
-StackElementOption Pop(Stack* stack, canary_t canary)
+StackElementOption Pop(Stack* stack)
 {
-    ErrorCode error = CheckStackIntegrity(stack, canary);
+    ErrorCode error = CheckStackIntegrity(stack);
 
     if (error != EVERYTHING_FINE)
         return {POISON, error};
@@ -160,14 +211,16 @@ StackElementOption Pop(Stack* stack, canary_t canary)
 
     stack->size = size;
 
-    error = _stackRealloc(stack, canary);
+    error = _stackRealloc(stack);
 
-    _checkCanary(stack, canary);
+    _checkCanary(stack);
+
+    _reHashify(stack);
 
     return {el, error};
 }
 
-ErrorCode _stackRealloc(Stack* stack, canary_t canary)
+static ErrorCode _stackRealloc(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
@@ -181,14 +234,13 @@ ErrorCode _stackRealloc(Stack* stack, canary_t canary)
         size_t realDataSize = stack->realDataSize;
 
         canary_t* oldRightCanaryPtr = _getRightDataCanaryPtr(stack->data, stack->realDataSize);
-        canary_t oldRightCanary = *oldRightCanaryPtr;
+        canary_t oldRightCanary     = *oldRightCanaryPtr;
 
         *oldRightCanaryPtr = 0;
 
         realDataSize += numberOfElementsToAdd * sizeof(StackElement_t);
 
-        StackElement_t* newData = (StackElement_t*)realloc((void*)oldData, realDataSize);
-        newData = (StackElement_t*)((void*)newData + sizeof(canary_t));
+        StackElement_t* newData = (StackElement_t*)(realloc((void*)oldData, realDataSize) + sizeof(canary_t));
 
         *_getRightDataCanaryPtr(newData, realDataSize) = oldRightCanary;
 
@@ -198,32 +250,64 @@ ErrorCode _stackRealloc(Stack* stack, canary_t canary)
         stack->data = newData;
         stack->realDataSize = realDataSize;
         stack->capacity += numberOfElementsToAdd;
+
+        for (size_t i = stack->size; i < stack->capacity; i++)
+            newData[i] = POISON;
     }
 
+    _checkCanary(stack);
 
-    _checkCanary(stack, canary);
+    _reHashify(stack);
 
     return EVERYTHING_FINE;
 }
 
-ErrorCode _checkCanary(const Stack* stack, size_t canary)
+static ErrorCode _checkCanary(const Stack* stack)
 {
-    if (stack->leftCanary != canary ||
-        stack->rightCanary != canary ||
-        *_getLeftDataCanaryPtr(stack->data) != canary ||
-        *_getRightDataCanaryPtr(stack->data, stack->realDataSize) != canary)
+    if (stack->leftCanary != _CANARY ||
+               stack->rightCanary != _CANARY ||
+               *_getLeftDataCanaryPtr(stack->data) != _CANARY ||
+               *_getRightDataCanaryPtr(stack->data, stack->realDataSize) != _CANARY)
+    {
         MyAssertHard(0, ERROR_DEAD_CANARY);
+    }
+    
+    return EVERYTHING_FINE;
+}
 
+static ErrorCode _reHashify(Stack* stack)
+{
+    stack->hashData = 0;
+    stack->hashStack = 0;
+
+    hash_t hashData = MurmurHash2A((const void*)stack->data - sizeof(canary_t), stack->realDataSize, 0xBEBDA);
+    hash_t hashStack = MurmurHash2A((const void*)stack, sizeof(*stack), 0xBEBDA);
+
+    stack->hashData = hashData;
+    stack->hashStack = hashStack;
 
     return EVERYTHING_FINE;
 }
 
-canary_t* _getLeftDataCanaryPtr(const StackElement_t* data)
+static ErrorCode _checkHash(Stack* stack)
+{
+    hash_t oldHashData  = stack->hashData;
+    hash_t oldHashStack = stack->hashStack;
+
+    _reHashify(stack);
+
+    if (oldHashData != stack->hashData || oldHashStack != stack->hashStack)
+        return ERROR_BAD_HASH;
+    
+    return EVERYTHING_FINE;
+}
+
+static canary_t* _getLeftDataCanaryPtr(const StackElement_t* data)
 {
     return (canary_t*)((void*)data - sizeof(canary_t));
 }
 
-canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize)
+static canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize)
 {
     return (canary_t*)((void*)data + realDataSize - 2 * sizeof(canary_t));
 }
