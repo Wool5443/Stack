@@ -82,7 +82,12 @@ ErrorCode StackDestructor(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
-    free((void*)stack->data - sizeof(canary_t));
+    ErrorCode error = EVERYTHING_FINE;
+
+    if (stack->data == NULL)
+        error = ERROR_NO_MEMORY;
+    else
+        free((void*)stack->data - sizeof(canary_t));
 
     stack->size = POISON;
     stack->capacity = POISON;
@@ -99,7 +104,7 @@ ErrorCode StackDestructor(Stack* stack)
     
     free((void*)stack);
 
-    return EVERYTHING_FINE;
+    return error;
 }
 
 ErrorCode CheckStackIntegrity(Stack* stack)
