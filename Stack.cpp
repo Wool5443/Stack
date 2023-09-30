@@ -3,7 +3,7 @@
 
 typedef unsigned int hash_t;
 
-#define RETURN_ERROR(error) if (error != EVERYTHING_FINE) return error;
+#define RETURN_ERROR(error) if (error) return error;
 
 static size_t _getRandomCanary()
 {
@@ -195,7 +195,7 @@ StackElementOption Pop(Stack* stack)
 {
     ErrorCode error = CheckStackIntegrity(stack);
 
-    if (error != EVERYTHING_FINE)
+    if (error)
         return {POISON, error};
 
     if (stack->size == 0)
@@ -212,12 +212,12 @@ StackElementOption Pop(Stack* stack)
 
     error = _stackRealloc(stack);
 
-    if (error != EVERYTHING_FINE)
+    if (error)
         return {POISON, error};
 
     error = _checkCanary(stack);
 
-    if (error != EVERYTHING_FINE)
+    if (error)
         return {POISON, error};
 
     _reHashify(stack);
