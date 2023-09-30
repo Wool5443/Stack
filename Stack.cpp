@@ -209,7 +209,7 @@ StackElementOption Pop(Stack* stack)
     size_t size = stack->size - 1;
     StackElement_t* data = stack->data;
 
-    StackElement_t el = data[size];
+    StackElement_t value = data[size];
     
     data[size] = POISON;
 
@@ -218,7 +218,7 @@ StackElementOption Pop(Stack* stack)
     error = _stackRealloc(stack);
 
     if (error)
-        return {POISON, error};
+        return {value, error};
 
     error = _checkCanary(stack);
 
@@ -227,7 +227,7 @@ StackElementOption Pop(Stack* stack)
 
     _reHashify(stack);
 
-    return {el, error};
+    return {value, error};
 }
 
 static ErrorCode _stackRealloc(Stack* stack)
