@@ -34,17 +34,17 @@ struct StackElementOption
     ErrorCode error;
 };
 
-#define StackInit()                                                       \
+#define StackInit()                                                             \
 ({                                                                              \
     Owner _owner = {__FILE__, __LINE__, __func__};                              \
-    _stackInit(_owner);                                                 \
+    _stackInit(_owner);                                                         \
 })
 
-#define StackDump(where, stack)                                         \
+#define StackDump(where, stack)                                                 \
 do                                                                              \
 {                                                                               \
     Owner caller = {__FILE__, __LINE__, __func__};                              \
-    _stackDump(where, stack, #stack, &caller);                          \
+    _stackDump(where, stack, #stack, &caller);                                  \
 } while (0);                    
 
 StackOption _stackInit(Owner owner);
