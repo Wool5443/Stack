@@ -279,7 +279,7 @@ void SetConsoleColor(FILE* place, const enum Color color)
 
 #define mmix(h, k) do { k *= m; k ^= k >> r; k *= m; h *= m; h ^= k; } while (0)
 
-unsigned int MurmurHash2A(const void *key, size_t len, uint64_t seed)
+unsigned int CalculateHash(const void *key, size_t len, uint64_t seed)
 {
 	const unsigned int m = 0x5bd1e995;
 	const int r = 24;

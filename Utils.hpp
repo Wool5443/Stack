@@ -179,6 +179,6 @@ bool CheckInput(void);
  */
 void SetConsoleColor(FILE* place, const enum Color color);
 
-unsigned int MurmurHash2A(const void *key, size_t len, uint64_t seed);
+unsigned int CalculateHash(const void *key, size_t len, uint64_t seed);
 
 #endif

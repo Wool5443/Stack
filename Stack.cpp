@@ -299,8 +299,8 @@ static ErrorCode _reHashify(Stack* stack)
     stack->hashData = 0;
     stack->hashStack = 0;
 
-    hash_t hashData = MurmurHash2A((const void*)stack->data - sizeof(canary_t), stack->realDataSize, 0xBEBDA);
-    hash_t hashStack = MurmurHash2A((const void*)stack, sizeof(*stack), 0xBEBDA);
+    hash_t hashData = CalculateHash((const void*)stack->data - sizeof(canary_t), stack->realDataSize, 0xBEBDA);
+    hash_t hashStack = CalculateHash((const void*)stack, sizeof(*stack), 0xBEBDA);
 
     stack->hashData = hashData;
     stack->hashStack = hashStack;
