@@ -17,7 +17,7 @@ int main()
     Stack* sex = tempStack.stack;
     for (int i = 0; i < 500; i++)
     {
-        ErrorCode error = Push((Stack*)((void*)sex + 8), i);
+        ErrorCode error = Push(sex, i);
         if (error)
         {
             fprintf(stderr, "ERROR\n");
