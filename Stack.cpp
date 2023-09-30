@@ -83,7 +83,7 @@ ErrorCode StackDestructor(Stack* stack)
     MyAssertSoft(stack, ERROR_NULLPTR);
 
     free((void*)stack->data - sizeof(canary_t));
-    
+
     stack->size = POISON;
     stack->capacity = POISON;
 
@@ -238,7 +238,7 @@ static ErrorCode _stackRealloc(Stack* stack)
 
     if ((stack->size == stack->capacity) ||
         (stack->size > 0 && stack->capacity > DEFAULT_CAPACITY &&
-         stack->size == stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR)))
+         stack->size <= stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR)))
     {
         size_t numberOfElementsToAdd = stack->capacity * (STACK_GROW_FACTOR - 1);
 
