@@ -309,6 +309,12 @@ static ErrorCode _reHashify(Stack* stack)
 
 static ErrorCode _checkHash(Stack* stack)
 {
+    #ifndef HASH_PROTECTION
+    
+    return EVERYTHING_FINE;
+
+    #endif
+
     hash_t oldHashData  = stack->hashData;
     hash_t oldHashStack = stack->hashStack;
 
