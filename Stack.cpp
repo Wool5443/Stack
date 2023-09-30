@@ -247,10 +247,10 @@ static ErrorCode _stackRealloc(Stack* stack)
 
         StackElement_t* newData = (StackElement_t*)(realloc((void*)oldData, realDataSize) + sizeof(canary_t));
 
-        *_getRightDataCanaryPtr(newData, realDataSize) = oldRightCanary;
-
         if (newData == NULL)
             return ERROR_NO_MEMORY;
+            
+        *_getRightDataCanaryPtr(newData, realDataSize) = oldRightCanary;
 
         stack->data = newData;
         stack->realDataSize = realDataSize;
@@ -285,7 +285,7 @@ static ErrorCode _reHashify(Stack* stack)
     #ifndef HASH_PROTECTION
 
     return EVERYTHING_FINE;
-    
+
     #endif
 
     stack->hashData = 0;
