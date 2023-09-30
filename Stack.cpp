@@ -111,9 +111,9 @@ ErrorCode CheckStackIntegrity(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
-    if (stack->capacity < stack->size)
+    if (stack->size < 0 || stack->capacity < stack->size)
         return ERROR_INDEX_OUT_OF_BOUNDS;
-    if (!stack->data)
+    if (!stack->data || stack->capacity < DEFAULT_CAPACITY)
         return ERROR_NO_MEMORY;
     
     RETURN_ERROR(_checkCanary(stack));
