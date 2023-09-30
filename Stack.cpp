@@ -83,12 +83,17 @@ ErrorCode StackDestructor(Stack* stack)
     MyAssertSoft(stack, ERROR_NULLPTR);
 
     free((void*)stack->data - sizeof(canary_t));
+    
     stack->size = POISON;
     stack->capacity = POISON;
+
     stack->data = NULL;
+
     stack->owner = {};
+
     stack->hashData = POISON;
     stack->hashStack = POISON;
+
     stack->leftCanary = POISON;
     stack->rightCanary = POISON;
     
@@ -229,6 +234,8 @@ static ErrorCode _stackRealloc(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
+    RETURN_ERROR(CheckStackIntegrity(stack));
+
     if ((stack->size == stack->capacity) ||
         (stack->size > 0 && stack->capacity > DEFAULT_CAPACITY &&
          stack->size == stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR)))
@@ -249,7 +256,7 @@ static ErrorCode _stackRealloc(Stack* stack)
 
         if (newData == NULL)
             return ERROR_NO_MEMORY;
-            
+
         *_getRightDataCanaryPtr(newData, realDataSize) = oldRightCanary;
 
         stack->data = newData;
