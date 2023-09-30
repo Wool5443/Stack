@@ -128,24 +128,24 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
             "Stack condition - %d\n"
             "Data hash = %u\n"
             "Stack hash = %u\n"
-            "Left stack canary = %zu\n"
-            "Right stack canary = %zu\n"
+            "Left stack canary = %zu (should be %zu)\n"
+            "Right stack canary = %zu (should be %zu)\n"
             "{\n"
             "    size = %zu\n"
             "    capacity = %zu\n"
             "    data[%p]\n"
-            "    Left data canary = %zu\n",
+            "    Left data canary = %zu (should be %zu)\n",
             stack, stackName + 1, stack->owner.fileName, stack->owner.line, stack->owner.name,
             caller->fileName, caller->line, caller->name,
             error,
             stack->hashData,
             stack->hashStack,
-            stack->leftCanary,
-            stack->rightCanary,
+            stack->leftCanary, _CANARY,
+            stack->rightCanary, _CANARY,
             stack->size,
             stack->capacity,
             stack->data,
-            *_getLeftDataCanaryPtr(stack->data)
+            *_getLeftDataCanaryPtr(stack->data), _CANARY
             );
 
     const StackElement_t* data = stack->data;
@@ -171,7 +171,8 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
 
     // SetConsoleColor(where, WHITE);
 
-    fprintf(where, "    Right data canary = %zu\n}\n", *_getRightDataCanaryPtr(stack->data, stack->realDataSize));
+    fprintf(where, "    Right data canary = %zu (should be %zu)\n}\n",
+            *_getRightDataCanaryPtr(stack->data, stack->realDataSize), _CANARY);
 
     RETURN_ERROR(_checkCanary(stack));
 
