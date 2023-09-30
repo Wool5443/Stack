@@ -140,7 +140,7 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
             "    capacity = %zu\n"
             "    data[%p]\n"
             "    Left data canary = %zu (should be %zu)\n",
-            stack, stackName + 1, stack->owner.fileName, stack->owner.line, stack->owner.name,
+            stack, stackName, stack->owner.fileName, stack->owner.line, stack->owner.name,
             caller->fileName, caller->line, caller->name,
             error,
             stack->hashData,
