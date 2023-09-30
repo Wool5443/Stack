@@ -3,6 +3,8 @@
 
 typedef unsigned int hash_t;
 
+#define RETURN_ERROR(error) if (error != EVERYTHING_FINE) return error;
+
 static size_t _getRandomCanary()
 {
     srand((unsigned int)time(NULL));
@@ -104,7 +106,7 @@ ErrorCode CheckStackIntegrity(Stack* stack)
     if (!stack->data)
         return ERROR_NO_MEMORY;
     
-    _checkCanary(stack);
+    RETURN_ERROR(_checkCanary(stack));
 
     return _checkHash(stack);
 }
@@ -119,6 +121,8 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
             "Stack[%p] \"%s\" from %s(%zu) %s()\n"
             "called from %s(%zu) %s()\n"
             "Stack condition - %d\n"
+            "Data hash = %u\n"
+            "Stack hash = %u\n"
             "Left stack canary = %zu\n"
             "Right stack canary = %zu\n"
             "{\n"
@@ -129,6 +133,8 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
             stack, stackName + 1, stack->owner.fileName, stack->owner.line, stack->owner.name,
             caller->fileName, caller->line, caller->name,
             error,
+            stack->hashData,
+            stack->hashStack,
             stack->leftCanary,
             stack->rightCanary,
             stack->size,
@@ -139,31 +145,30 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
 
     const StackElement_t* data = stack->data;
     size_t capacity = stack->capacity;
+
     for (size_t i = 0; i < capacity; i++)
     {
         fprintf(where, "    ");
 
         if (data[i] != POISON)
         {
-            SetConsoleColor(where, GREEN);
+            // SetConsoleColor(where, GREEN);
             fprintf(where, "*");
         }
         else
         {
-            SetConsoleColor(where, RED);
+            // SetConsoleColor(where, RED);
             fprintf(where, " ");
         }
 
         fprintf(where, "[%zu] = " STACK_PRINTF_SPECIFIER "\n", i, data[i]);
     }
 
-    SetConsoleColor(where, WHITE);
+    // SetConsoleColor(where, WHITE);
 
     fprintf(where, "    Right data canary = %zu\n}\n", *_getRightDataCanaryPtr(stack->data, stack->realDataSize));
 
-    _checkCanary(stack);
-
-    stack->data[1] = 38;
+    RETURN_ERROR(_checkCanary(stack));
 
     return EVERYTHING_FINE;
 }
@@ -172,20 +177,14 @@ ErrorCode Push(Stack* stack, StackElement_t value)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
-    ErrorCode error = CheckStackIntegrity(stack);
+    RETURN_ERROR(CheckStackIntegrity(stack));
 
-    if (error != EVERYTHING_FINE)
-        return error;
-
-    error = _stackRealloc(stack);
-
-    if (error != EVERYTHING_FINE)
-        return error;
+    RETURN_ERROR(_stackRealloc(stack));
 
     stack->data[stack->size] = value;
     stack->size++;
 
-    _checkCanary(stack);
+    RETURN_ERROR(_checkCanary(stack));
 
     _reHashify(stack);
 
@@ -213,7 +212,13 @@ StackElementOption Pop(Stack* stack)
 
     error = _stackRealloc(stack);
 
-    _checkCanary(stack);
+    if (error != EVERYTHING_FINE)
+        return {POISON, error};
+
+    error = _checkCanary(stack);
+
+    if (error != EVERYTHING_FINE)
+        return {POISON, error};
 
     _reHashify(stack);
 
@@ -255,7 +260,7 @@ static ErrorCode _stackRealloc(Stack* stack)
             newData[i] = POISON;
     }
 
-    _checkCanary(stack);
+    RETURN_ERROR(_checkCanary(stack));
 
     _reHashify(stack);
 
@@ -269,7 +274,7 @@ static ErrorCode _checkCanary(const Stack* stack)
                *_getLeftDataCanaryPtr(stack->data) != _CANARY ||
                *_getRightDataCanaryPtr(stack->data, stack->realDataSize) != _CANARY)
     {
-        MyAssertHard(0, ERROR_DEAD_CANARY);
+        return ERROR_DEAD_CANARY;
     }
     
     return EVERYTHING_FINE;

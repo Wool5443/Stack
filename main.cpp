@@ -15,21 +15,16 @@ int main()
 
     }
     Stack* sex = tempStack.stack;
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 500; i++)
     {
         Push(sex, i);
     }
-    StackDump(stderr, sex);
-    StackDump(stderr, sex);
-    for (int i = 0; i < 5; i++)
-    {
-        StackElementOption value = Pop(sex);
-        if (value.error == EVERYTHING_FINE)
-            printf(STACK_PRINTF_SPECIFIER " ", value.value);
-        else
-            puts("Empty stack pop");
-    }
-    puts("");
+
+    FILE* f = fopen("out.txt", "w");
+
+    StackDump(f, sex);
+
+    fclose(f);
 
     StackDestructor(sex);
 
