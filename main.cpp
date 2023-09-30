@@ -17,10 +17,10 @@ int main()
     Stack* sex = tempStack.stack;
     for (int i = 0; i < 500; i++)
     {
-        ErrorCode error = Push((Stack*)((void*)sex + 1), i);
+        ErrorCode error = Push((Stack*)((void*)sex + 8), i);
         if (error)
         {
-            printf("ERROR!!!\n");
+            fprintf(stderr, "ERROR\n");
             return error;
         }
     }

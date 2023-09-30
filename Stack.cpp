@@ -282,6 +282,12 @@ static ErrorCode _checkCanary(const Stack* stack)
 
 static ErrorCode _reHashify(Stack* stack)
 {
+    #ifndef HASH_PROTECTION
+
+    return EVERYTHING_FINE;
+    
+    #endif
+
     stack->hashData = 0;
     stack->hashStack = 0;
 

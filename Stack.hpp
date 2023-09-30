@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include "Utils.hpp"
 
+#define HASH_PROTECTION
+// #undef HASH_PROTECTION
+
 typedef int StackElement_t;
 
 typedef size_t canary_t;
