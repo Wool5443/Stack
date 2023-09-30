@@ -3,6 +3,8 @@
 
 typedef unsigned int hash_t;
 
+static const hash_t HASH_SEED = 0xBEBDA;
+
 #define RETURN_ERROR(error) if (error) return error;
 
 static size_t _getRandomCanary()
@@ -304,8 +306,8 @@ static ErrorCode _reHashify(Stack* stack)
     stack->hashData = 0;
     stack->hashStack = 0;
 
-    hash_t hashData = CalculateHash((const void*)stack->data - sizeof(canary_t), stack->realDataSize, 0xBEBDA);
-    hash_t hashStack = CalculateHash((const void*)stack, sizeof(*stack), 0xBEBDA);
+    hash_t hashData = CalculateHash((const void*)stack->data - sizeof(canary_t), stack->realDataSize, HASH_SEED);
+    hash_t hashStack = CalculateHash((const void*)stack, sizeof(*stack), HASH_SEED);
 
     stack->hashData = hashData;
     stack->hashStack = hashStack;
