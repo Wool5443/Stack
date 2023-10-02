@@ -14,10 +14,10 @@ int main()
         return tempStack.error;
 
     }
-    Stack* sex = tempStack.stack;
+    Stack* stack = tempStack.stack;
     for (int i = 0; i < 500; i++)
     {
-        ErrorCode error = Push(sex, i);
+        ErrorCode error = Push(stack, i);
         if (error)
         {
             fprintf(stderr, "ERROR\n");
@@ -27,11 +27,11 @@ int main()
 
     FILE* f = fopen("out.txt", "w");
 
-    StackDump(f, sex);
+    StackDump(f, stack);
 
     fclose(f);
 
-    StackDestructor(sex);
+    StackDestructor(stack);
 
     return 0;
 }
