@@ -113,7 +113,7 @@ ErrorCode CheckStackIntegrity(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
-    if (stack->size < 0 || stack->capacity < stack->size)
+    if (stack->capacity < stack->size)
         return ERROR_INDEX_OUT_OF_BOUNDS;
     if (!stack->data || stack->capacity < DEFAULT_CAPACITY)
         return ERROR_NO_MEMORY;
@@ -129,7 +129,7 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
 
     ErrorCode error = CheckStackIntegrity(stack);
 
-    fprintf(where, 
+    fprintf(where,
             "Stack[%p] \"%s\" from %s(%zu) %s()\n"
             "called from %s(%zu) %s()\n"
             "Stack condition - %d\n"
