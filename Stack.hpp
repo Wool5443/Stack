@@ -5,8 +5,7 @@
 #include <stdint.h>
 #include "Utils.hpp"
 
-#define HASH_PROTECTION
-// #undef HASH_PROTECTION
+#include "HashSettings.settings"
 
 typedef int StackElement_t;
 
@@ -34,18 +33,23 @@ struct StackElementOption
     ErrorCode error;
 };
 
-#define StackInit()                                                             \
-({                                                                              \
-    Owner _owner = {__FILE__, __LINE__, __func__};                              \
-    _stackInit(_owner);                                                         \
+#define StackInit()                                                                      \
+({                                                                                       \
+    Owner _owner = {__FILE__, __LINE__, __func__};                                       \
+    _stackInit(_owner);                                                                  \
 })
 
-#define StackDump(where, stack)                                                 \
-do                                                                              \
-{                                                                               \
-    Owner caller = {__FILE__, __LINE__, __func__};                              \
-    _stackDump(where, stack, #stack, &caller);                                  \
-} while (0);                    
+#define StackDump(where, stack, error)                                                   \
+do                                                                                       \
+{                                                                                        \
+    if (stack)                                                                           \
+    {                                                                                    \
+        Owner _caller = {__FILE__, __LINE__, __func__};                                  \                  
+        FILE* _logFile = fopen(where, "a");                                              \
+        _stackDump(_logFile, stack, #stack, &_caller, error);                            \
+        fclose(_logFile);                                                                \
+    }                                                                                    \
+} while (0);                        
 
 StackOption _stackInit(Owner owner);
 
@@ -53,7 +57,7 @@ ErrorCode StackDestructor(Stack* stack);
 
 ErrorCode CheckStackIntegrity(Stack* stack);
 
-ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* caller);
+ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* caller, ErrorCode error);
 
 ErrorCode Push(Stack* stack, StackElement_t value);
 

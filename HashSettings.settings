@@ -1,0 +1,5 @@
+#define HASH_PROTECTION
+#define CANARY_PROTECTION
+#define DEBUG
+
+static const char* logFilePath = "log.txt";

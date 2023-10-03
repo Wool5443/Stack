@@ -24,6 +24,13 @@ enum ErrorCode
   ERROR_BAD_VALUE, ERROR_DEAD_CANARY, ERROR_BAD_HASH
 };
 
+static const char* ERROR_CODE_NAMES[] =
+{
+  "EVERYTHING_FINE", "ERROR_NULLPTR", "ERROR_BAD_NUMBER", "ERROR_BAD_FILE", "ERROR_OVERLAP",
+  "ERROR_INDEX_OUT_OF_BOUNDS", "ERROR_NO_MEMORY", "ERROR_NO_COMPARATOR", "ERROR_BAD_SIZE",
+  "ERROR_BAD_VALUE", "ERROR_DEAD_CANARY", "ERROR_BAD_HASH"
+};
+
 /**
  * @brief typedef for compare functions used in universal quicksort.
 */

@@ -21,15 +21,10 @@ int main()
         if (error)
         {
             fprintf(stderr, "ERROR\n");
+            StackDestructor(stack);
             return error;
         }
     }
-
-    FILE* f = fopen("out.txt", "w");
-
-    StackDump(f, stack);
-
-    fclose(f);
 
     StackDestructor(stack);
 
