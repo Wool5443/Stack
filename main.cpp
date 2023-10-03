@@ -26,6 +26,13 @@ int main()
         }
     }
 
+    for (int i = 0; i < 500; i++)
+    {
+        StackElementOption el = Pop(stack);
+        if (!el.error)
+            printf("%d, cap = %zu\n", el.value, *(size_t*)((void*)stack + 48));
+    }
+
     StackDestructor(stack);
 
     return 0;

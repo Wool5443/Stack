@@ -1,5 +1,5 @@
-#define HASH_PROTECTION
-#define CANARY_PROTECTION
-#define DEBUG
+// #define HASH_PROTECTION
+// #define CANARY_PROTECTION
+// #define DEBUG
 
-static const char* logFilePath = "log.txt";
+static const char* logFilePath = "log2.txt";

@@ -5,22 +5,18 @@ typedef unsigned int hash_t;
 
 static const hash_t HASH_SEED = 0xBEBDA;
 
-#ifdef DEBUG
-    #define RETURN_ERROR(error, stack)                                        \
-    do                                                                        \
-    {                                                                         \
-        __typeof__(error) _tempError = error;                                 \
-        __typeof__(stack) _tempStack = stack;                                 \
-                                                                            \
-        if (_tempError)                                                       \
-        {                                                                     \
-            StackDump(logFilePath, _tempStack, _tempError);                       \
-            return _tempError;                                                \
-        }                                                                     \
-    } while (0);                
-#else
-    #define RETURN_ERROR(...)
-#endif
+#define RETURN_ERROR(error, stack)                                        \
+do                                                                        \
+{                                                                         \
+    __typeof__(error) _tempError = error;                                 \
+    __typeof__(stack) _tempStack = stack;                                 \
+                                                                          \
+    if (_tempError)                                                       \
+    {                                                                     \
+        StackDump(logFilePath, _tempStack, _tempError);                   \
+        return _tempError;                                                \
+    }                                                                     \
+} while (0);                
 
 #ifdef CANARY_PROTECTION
     static size_t _getRandomCanary()
@@ -55,21 +51,25 @@ struct Stack
     #endif
 };
 
+#ifdef CANARY_PROTECTION
 static ErrorCode _checkCanary(const Stack* stack);
-
-static ErrorCode _checkHash(Stack* stack);
-
-static ErrorCode _stackRealloc(Stack* stack);
 
 static canary_t* _getLeftDataCanaryPtr(const StackElement_t* data);
 
 static canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize);
+#endif
+
+#ifdef HASH_PROTECTION
+static ErrorCode _checkHash(Stack* stack);
 
 static ErrorCode _reHashify(Stack* stack);
 
 static hash_t _calculateDataHash(const Stack* stack);
 
 static hash_t _calculateStackHash(Stack* stack);
+#endif
+
+static ErrorCode _stackRealloc(Stack* stack);
 
 StackOption _stackInit(Owner owner)
 {
@@ -80,17 +80,28 @@ StackOption _stackInit(Owner owner)
 
     *stack = 
     {
-        .leftCanary = _CANARY,
+        #ifdef CANARY_PROTECTION
+            .leftCanary = _CANARY,
+        #endif
         .owner = owner,
         .size = 0,
-        .capacity = DEFAULT_CAPACITY,
-        .rightCanary = _CANARY
+        .capacity = DEFAULT_CAPACITY
+        #ifdef CANARY_PROTECTION
+            ,.rightCanary = _CANARY
+        #endif
     };
 
-    size_t realDataSize = DEFAULT_CAPACITY * sizeof(StackElement_t) + 2 * sizeof(canary_t);
+    size_t realDataSize = DEFAULT_CAPACITY * sizeof(StackElement_t);
+
+    #ifdef CANARY_PROTECTION
+    realDataSize += 2 * sizeof(canary_t);
+    #endif
 
     StackElement_t* data = (StackElement_t*)calloc(realDataSize, 1);
+
+    #ifdef CANARY_PROTECTION
     data = (StackElement_t*)((void*)data + sizeof(canary_t));
+    #endif
 
     #ifdef CANARY_PROTECTION
     *_getLeftDataCanaryPtr(data) = _CANARY;
@@ -130,7 +141,11 @@ ErrorCode StackDestructor(Stack* stack)
     if (stack->data == NULL)
         error = ERROR_NO_MEMORY;
     else
+        #ifdef CANARY_PROTECTION
         free((void*)stack->data - sizeof(canary_t));
+        #else
+        free((void*)stack->data);
+        #endif
 
     stack->size = POISON;
     stack->capacity = POISON;
@@ -169,9 +184,9 @@ ErrorCode CheckStackIntegrity(Stack* stack)
 
     #ifdef HASH_PROTECTION
         return _checkHash(stack);
-    #else
-        return EVERYTHING_FINE;
     #endif
+    
+    return EVERYTHING_FINE;
 }
 
 ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* caller, ErrorCode error)
@@ -197,9 +212,9 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
             "    data[%p]\n"
 
             #ifdef CANARY_PROTECTION
-            "    Left data canary = %zu (should be %zu)\n",
+            "    Left data canary = %zu (should be %zu)\n"
             #endif
-
+            ,
             stack, stackName, stack->owner.fileName, stack->owner.line, stack->owner.name,
             caller->fileName, caller->line, caller->name,
             ERROR_CODE_NAMES[error],
@@ -216,10 +231,10 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
 
             stack->size,
             stack->capacity,
-            stack->data,
+            stack->data
 
             #ifdef CANARY_PROTECTION
-            *_getLeftDataCanaryPtr(stack->data), _CANARY
+            , *_getLeftDataCanaryPtr(stack->data), _CANARY
             #endif
             );
 
@@ -268,8 +283,6 @@ ErrorCode Push(Stack* stack, StackElement_t value)
     _reHashify(stack);
     #endif
 
-    stack->data[stack->size - 1] = 0xbebda;
-
     return EVERYTHING_FINE;
 }
 
@@ -297,12 +310,16 @@ StackElementOption Pop(Stack* stack)
     if (error)
         return {value, error};
 
+    #ifdef CANARY_PROTECTION
     error = _checkCanary(stack);
+    #endif
 
     if (error)
         return {POISON, error};
 
+    #ifdef HASH_PROTECTION
     error = _reHashify(stack);
+    #endif
 
     return {value, error};
 }
@@ -313,14 +330,17 @@ static ErrorCode _stackRealloc(Stack* stack)
 
     RETURN_ERROR(CheckStackIntegrity(stack), stack);
 
-    if ((stack->size == stack->capacity) ||
-        (stack->size > 0 && stack->capacity > DEFAULT_CAPACITY &&
-         stack->size <= stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR)))
+    if (stack->size == stack->capacity)
     {
-        size_t numberOfElementsToAdd = stack->capacity * (STACK_GROW_FACTOR - 1);
+        size_t newCapacity = stack->capacity * STACK_GROW_FACTOR;
 
-        StackElement_t* oldData = (StackElement_t*)((void*)stack->data - sizeof(canary_t));
-        size_t realDataSize = stack->realDataSize;
+        #ifdef CANARY_PROTECTION
+            StackElement_t* oldData = (StackElement_t*)((void*)stack->data - sizeof(canary_t));
+        #else
+            StackElement_t* oldData = stack->data;
+        #endif
+        
+        size_t newDataSize = stack->realDataSize;
 
         #ifdef CANARY_PROTECTION
         canary_t* oldRightCanaryPtr = _getRightDataCanaryPtr(stack->data, stack->realDataSize);
@@ -329,9 +349,13 @@ static ErrorCode _stackRealloc(Stack* stack)
         *oldRightCanaryPtr = 0;
         #endif
 
-        realDataSize += numberOfElementsToAdd * sizeof(StackElement_t);
+        newDataSize = newCapacity * sizeof(StackElement_t);
 
-        StackElement_t* newData = (StackElement_t*)(realloc((void*)oldData, realDataSize) + sizeof(canary_t));
+        StackElement_t* newData = (StackElement_t*)realloc((void*)oldData, newDataSize);
+
+        #ifdef CANARY_PROTECTION
+        newData = (StackElement_t*)((void*)newData + sizeof(canary_t));
+        #endif
 
         if (newData == NULL)
             return ERROR_NO_MEMORY;
@@ -341,11 +365,49 @@ static ErrorCode _stackRealloc(Stack* stack)
         #endif
 
         stack->data = newData;
-        stack->realDataSize = realDataSize;
-        stack->capacity += numberOfElementsToAdd;
+        stack->realDataSize = newDataSize;
+        stack->capacity = newCapacity;
 
         for (size_t i = stack->size; i < stack->capacity; i++)
             newData[i] = POISON;
+    }
+    else if (DEFAULT_CAPACITY < stack->capacity && stack->size <= stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR))
+    {
+        size_t newCapacity = stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR);
+
+        #ifdef CANARY_PROTECTION
+            StackElement_t* oldData = (StackElement_t*)((void*)stack->data - sizeof(canary_t));
+        #else
+            StackElement_t* oldData = stack->data;
+        #endif
+        
+        size_t newDataSize = stack->realDataSize;
+
+        #ifdef CANARY_PROTECTION
+        canary_t* oldRightCanaryPtr = _getRightDataCanaryPtr(stack->data, stack->realDataSize);
+        canary_t oldRightCanary     = *oldRightCanaryPtr;
+
+        *oldRightCanaryPtr = 0;
+        #endif
+
+        newDataSize = newCapacity * sizeof(StackElement_t);
+
+        StackElement_t* newData = (StackElement_t*)realloc((void*)oldData, newDataSize);
+
+        #ifdef CANARY_PROTECTION
+        newData = (StackElement_t*)((void*)newData + sizeof(canary_t));
+        #endif
+
+        if (newData == NULL)
+            return ERROR_NO_MEMORY;
+
+        #ifdef CANARY_PROTECTION
+        *_getRightDataCanaryPtr(newData, realDataSize) = oldRightCanary;
+        #endif
+
+        stack->data = newData;
+        stack->realDataSize = newDataSize;
+        stack->capacity = newCapacity;
     }
 
     #ifdef CANARY_PROTECTION
@@ -359,6 +421,7 @@ static ErrorCode _stackRealloc(Stack* stack)
     return EVERYTHING_FINE;
 }
 
+#ifdef CANARY_PROTECTION
 static ErrorCode _checkCanary(const Stack* stack)
 {
     if (stack->leftCanary != _CANARY ||
@@ -372,6 +435,18 @@ static ErrorCode _checkCanary(const Stack* stack)
     return EVERYTHING_FINE;
 }
 
+static canary_t* _getLeftDataCanaryPtr(const StackElement_t* data)
+{
+    return (canary_t*)((void*)data - sizeof(canary_t));
+}
+
+static canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize)
+{
+    return (canary_t*)((void*)data + realDataSize - 2 * sizeof(canary_t));
+}
+#endif
+
+#ifdef HASH_PROTECTION
 static ErrorCode _reHashify(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
@@ -415,13 +490,4 @@ static ErrorCode _checkHash(Stack* stack)
     
     return EVERYTHING_FINE;
 }
-
-static canary_t* _getLeftDataCanaryPtr(const StackElement_t* data)
-{
-    return (canary_t*)((void*)data - sizeof(canary_t));
-}
-
-static canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize)
-{
-    return (canary_t*)((void*)data + realDataSize - 2 * sizeof(canary_t));
-}
+#endif

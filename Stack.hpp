@@ -46,7 +46,8 @@ do                                                                              
     {                                                                                    \
         Owner _caller = {__FILE__, __LINE__, __func__};                                  \                  
         FILE* _logFile = fopen(where, "a");                                              \
-        _stackDump(_logFile, stack, #stack, &_caller, error);                            \
+        if (_logFile)                                                                    \
+            _stackDump(_logFile, stack, #stack, &_caller, error);                        \
         fclose(_logFile);                                                                \
     }                                                                                    \
 } while (0);                        
