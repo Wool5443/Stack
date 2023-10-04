@@ -7,61 +7,100 @@
 
 #include "HashSettings.settings"
 
-typedef int StackElement_t;
-
 typedef size_t canary_t;
 
-#define STACK_PRINTF_SPECIFIER "%d"
-
-const size_t STACK_GROW_FACTOR = 2;
-
-const size_t DEFAULT_CAPACITY = 8;
-
-const StackElement_t POISON = INT32_MAX;
-
+/**
+ * @brief Stack structure with hidden fields.
+*/
 struct Stack;
 
+/**
+ * @brief Struct that @see StackInit returns. If error is not 0, than @see StackOption::stack = NULL.
+ * 
+ * @var StackOption::stack - pointer to the stack.
+ * @var StackOption::error - error message @see ErrorCode.
+*/
 struct StackOption
 {
     Stack* stack;
     ErrorCode error;
 };
 
+/**
+ * @brief Struct used for pop. If it couldn't pop returns an error and a poison as value.
+ * 
+ * @var StackOption::value - returned value.
+ * @var StackOption::error - error message @see ErrorCode.
+*/
 struct StackElementOption
 {
     StackElement_t value;
     ErrorCode error;
 };
 
+/**
+ * @brief Initializes a stack.
+ * 
+ * @return Stack*.
+*/
 #define StackInit()                                                                      \
 ({                                                                                       \
     Owner _owner = {__FILE__, __LINE__, __func__};                                       \
     _stackInit(_owner);                                                                  \
 })
 
-#define StackDump(where, stack, error)                                                   \
+/**
+ * @brief dumps a stack to a given file.
+*/
+#define StackDump(where, stack)                                                          \
 do                                                                                       \
 {                                                                                        \
     if (stack)                                                                           \
     {                                                                                    \
         Owner _caller = {__FILE__, __LINE__, __func__};                                  \                  
-        FILE* _logFile = fopen(where, "a");                                              \
-        if (_logFile)                                                                    \
-            _stackDump(_logFile, stack, #stack, &_caller, error);                        \
-        fclose(_logFile);                                                                \
+        _stackDump(where, stack, &_caller, CheckStackIntegrity(stack));          \
     }                                                                                    \
 } while (0);                        
 
 StackOption _stackInit(Owner owner);
 
+/**
+ * @brief Destructor of a stack.
+ * 
+ * @param [in] stack - the stack to destruct.
+ * 
+ * @return @see @enum ErrorCode.
+*/
 ErrorCode StackDestructor(Stack* stack);
 
+/**
+ * @brief Check the state of a stack.
+ * 
+ * @param [in] stack - the stack to check.
+ * 
+ * @return @see @enum ErrorCode.
+*/
 ErrorCode CheckStackIntegrity(Stack* stack);
 
-ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* caller, ErrorCode error);
+ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error);
 
+/**
+ * @brief Adds an element on top of stack.
+ * 
+ * @param [in] stack - the stack to add to.
+ * @param [in] value - what to add.
+ * 
+ * @return error code.
+*/
 ErrorCode Push(Stack* stack, StackElement_t value);
 
+/**
+ * @brief Deletes and returns the top element of the stack.
+ * 
+ * @param [in] stack - the stack to pop from.
+ * 
+ * @return Option containing value and error code.
+*/
 StackElementOption Pop(Stack* stack);
 
 #endif

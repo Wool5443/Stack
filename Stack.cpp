@@ -5,18 +5,31 @@ typedef unsigned int hash_t;
 
 static const hash_t HASH_SEED = 0xBEBDA;
 
-#define RETURN_ERROR(error, stack)                                        \
-do                                                                        \
-{                                                                         \
-    __typeof__(error) _tempError = error;                                 \
-    __typeof__(stack) _tempStack = stack;                                 \
-                                                                          \
-    if (_tempError)                                                       \
-    {                                                                     \
-        StackDump(logFilePath, _tempStack, _tempError);                   \
-        return _tempError;                                                \
-    }                                                                     \
-} while (0);                
+#define RETURN_ERROR(error, stack)                                                       \
+do                                                                                       \
+{                                                                                        \
+    __typeof__(error) _tempError = error;                                                \
+    __typeof__(stack) _tempStack = stack;                                                \
+                                                                                         \
+    if (_tempError)                                                                      \
+    {                                                                                    \
+        _STACK_DUMP_RETURN_ERROR(logFilePath, _tempStack, _tempError);                   \
+        return _tempError;                                                               \
+    }                                                                                    \
+} while (0);
+
+#define _STACK_DUMP_RETURN_ERROR(filePath, stack, error)                                 \
+do                                                                                       \
+{                                                                                        \
+    if (stack)                                                                           \
+    {                                                                                    \
+        Owner _caller = {__FILE__, __LINE__, __func__};                                  \                  
+        FILE* _logFile = fopen(filePath, "a");                                              \
+        if (_logFile)                                                                    \
+            _stackDump(_logFile, stack, &_caller, error);                        \
+        fclose(_logFile);                                                                \
+    }                                                                                    \
+} while (0);
 
 #ifdef CANARY_PROTECTION
     static size_t _getRandomCanary()
@@ -189,10 +202,10 @@ ErrorCode CheckStackIntegrity(Stack* stack)
     return EVERYTHING_FINE;
 }
 
-ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* caller, ErrorCode error)
+ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error)
 {
     fprintf(where,
-            "Stack[%p] \"%s\" from %s(%zu) %s()\n"
+            "Stack[%p] from %s(%zu) %s()\n"
             "called from %s(%zu) %s()\n"
             "Stack condition - %s\n"
 
@@ -215,7 +228,7 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
             "    Left data canary = %zu (should be %zu)\n"
             #endif
             ,
-            stack, stackName, stack->owner.fileName, stack->owner.line, stack->owner.name,
+            stack, stack->owner.fileName, stack->owner.line, stack->owner.name,
             caller->fileName, caller->line, caller->name,
             ERROR_CODE_NAMES[error],
 
@@ -255,7 +268,7 @@ ErrorCode _stackDump(FILE* where, Stack* stack, const char* stackName, Owner* ca
 
 
     #ifdef CANARY_PROTECTION
-    fprintf(where, "    Right data canary = %zu (should be %zu)\n}\n",
+    fprintf(where, "    Right data canary = %zu (should be %zu)\n}\n\n",
             *_getRightDataCanaryPtr(stack->data, stack->realDataSize), _CANARY);
 
     RETURN_ERROR(_checkCanary(stack), stack);
@@ -282,6 +295,8 @@ ErrorCode Push(Stack* stack, StackElement_t value)
     #ifdef HASH_PROTECTION
     _reHashify(stack);
     #endif
+
+    stack->data[0] = -5;
 
     return EVERYTHING_FINE;
 }

@@ -2,4 +2,14 @@
 #define CANARY_PROTECTION
 #define DEBUG
 
-static const char* logFilePath = "log2.txt";
+typedef int StackElement_t;
+
+#define STACK_PRINTF_SPECIFIER "%d"
+
+const size_t STACK_GROW_FACTOR = 2;
+
+const size_t DEFAULT_CAPACITY = 8;
+
+const StackElement_t POISON = INT32_MAX;
+
+static const char* logFilePath = "log.txt";

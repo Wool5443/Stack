@@ -9,7 +9,7 @@
 
 #define TESTINGs
 
-/**
+/** @enum Color
  * @brief Represents colors for @see SetConsoleColor
  */
 enum Color { RED, GREEN, WHITE };
@@ -55,6 +55,11 @@ do {                                                                            
     exit(ERR_CODE);                                                                                                 \
 } while(0);
 
+/**
+ * @brief Transforms a given name into a string.
+ * 
+ * @param [in] VALUE - the thing to transform.
+*/
 #define ValueToString(VALUE) #VALUE
 
 /**
@@ -94,6 +99,13 @@ do {                                                                            
     _tx < _ty ? _tx : _ty;                                                                                          \
 })                                                                                                                  \
 
+/**
+ * @brief Struct to contain where some variable was created.
+ * 
+ * @var Owner::fileName - the file where the variable was created.
+ * @var Owner::line - the line where it was created.
+ * @var Owner::name - the name of the variable.
+*/
 struct Owner
 {
     const char* fileName;
