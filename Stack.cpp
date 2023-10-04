@@ -175,7 +175,7 @@ ErrorCode CheckStackIntegrity(Stack* stack)
 
     if (stack->capacity < stack->size)
         return ERROR_INDEX_OUT_OF_BOUNDS;
-    if (!stack->data || stack->capacity < DEFAULT_CAPACITY)
+    if (!stack->data)
         return ERROR_NO_MEMORY;
     
     #ifdef CANARY_PROTECTION
@@ -328,19 +328,22 @@ static ErrorCode _stackRealloc(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
-    RETURN_ERROR(CheckStackIntegrity(stack), stack);
+    size_t newCapacity = 0;
 
     if (stack->size == stack->capacity)
+        newCapacity = stack->capacity * STACK_GROW_FACTOR;
+    else if (DEFAULT_CAPACITY < stack->capacity && stack->size <= stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR))
+        newCapacity = stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR);
+
+    if (newCapacity != 0)
     {
-        size_t newCapacity = stack->capacity * STACK_GROW_FACTOR;
+        StackElement_t* oldData = stack->data;
+        size_t newDataSize = newCapacity * sizeof(StackElement_t);
 
         #ifdef CANARY_PROTECTION
-            StackElement_t* oldData = (StackElement_t*)((void*)stack->data - sizeof(canary_t));
-        #else
-            StackElement_t* oldData = stack->data;
+            oldData = (StackElement_t*)((void*)oldData - sizeof(canary_t));
+            newDataSize += 2 * sizeof(canary_t);
         #endif
-        
-        size_t newDataSize = stack->realDataSize;
 
         #ifdef CANARY_PROTECTION
         canary_t* oldRightCanaryPtr = _getRightDataCanaryPtr(stack->data, stack->realDataSize);
@@ -348,8 +351,6 @@ static ErrorCode _stackRealloc(Stack* stack)
 
         *oldRightCanaryPtr = 0;
         #endif
-
-        newDataSize = newCapacity * sizeof(StackElement_t);
 
         StackElement_t* newData = (StackElement_t*)realloc((void*)oldData, newDataSize);
 
@@ -361,7 +362,7 @@ static ErrorCode _stackRealloc(Stack* stack)
             return ERROR_NO_MEMORY;
 
         #ifdef CANARY_PROTECTION
-        *_getRightDataCanaryPtr(newData, realDataSize) = oldRightCanary;
+        *_getRightDataCanaryPtr(newData, newDataSize) = oldRightCanary;
         #endif
 
         stack->data = newData;
@@ -371,51 +372,9 @@ static ErrorCode _stackRealloc(Stack* stack)
         for (size_t i = stack->size; i < stack->capacity; i++)
             newData[i] = POISON;
     }
-    else if (DEFAULT_CAPACITY < stack->capacity && stack->size <= stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR))
-    {
-        size_t newCapacity = stack->capacity / (STACK_GROW_FACTOR * STACK_GROW_FACTOR);
-
-        #ifdef CANARY_PROTECTION
-            StackElement_t* oldData = (StackElement_t*)((void*)stack->data - sizeof(canary_t));
-        #else
-            StackElement_t* oldData = stack->data;
-        #endif
-        
-        size_t newDataSize = stack->realDataSize;
-
-        #ifdef CANARY_PROTECTION
-        canary_t* oldRightCanaryPtr = _getRightDataCanaryPtr(stack->data, stack->realDataSize);
-        canary_t oldRightCanary     = *oldRightCanaryPtr;
-
-        *oldRightCanaryPtr = 0;
-        #endif
-
-        newDataSize = newCapacity * sizeof(StackElement_t);
-
-        StackElement_t* newData = (StackElement_t*)realloc((void*)oldData, newDataSize);
-
-        #ifdef CANARY_PROTECTION
-        newData = (StackElement_t*)((void*)newData + sizeof(canary_t));
-        #endif
-
-        if (newData == NULL)
-            return ERROR_NO_MEMORY;
-
-        #ifdef CANARY_PROTECTION
-        *_getRightDataCanaryPtr(newData, realDataSize) = oldRightCanary;
-        #endif
-
-        stack->data = newData;
-        stack->realDataSize = newDataSize;
-        stack->capacity = newCapacity;
-    }
 
     #ifdef CANARY_PROTECTION
     RETURN_ERROR(_checkCanary(stack), stack);
-    #endif
-
-    #ifdef HASH_PROTECTION
-    RETURN_ERROR(_reHashify(stack), stack);
     #endif
 
     return EVERYTHING_FINE;
@@ -462,7 +421,13 @@ static ErrorCode _reHashify(Stack* stack)
 
 static hash_t _calculateDataHash(const Stack* stack)
 {
-    return CalculateHash((const void*)stack->data - sizeof(canary_t), stack->realDataSize, HASH_SEED);
+    const void* data = (const void*)stack->data;
+
+    #ifdef CANARY_PROTECTION
+    data -= sizeof(canary_t);
+    #endif
+
+    return CalculateHash(data, stack->realDataSize, HASH_SEED);
 }
 
 static hash_t _calculateStackHash(Stack* stack)

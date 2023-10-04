@@ -15,7 +15,7 @@ int main()
 
     }
     Stack* stack = tempStack.stack;
-    for (int i = 0; i < 500; i++)
+    for (int i = 0; i < 9; i++)
     {
         ErrorCode error = Push(stack, i);
         if (error)
@@ -26,11 +26,11 @@ int main()
         }
     }
 
-    for (int i = 0; i < 500; i++)
+    for (int i = 0; i < 9; i++)
     {
         StackElementOption el = Pop(stack);
         if (!el.error)
-            printf("%d, cap = %zu\n", el.value, *(size_t*)((void*)stack + 48));
+            printf("%d, cap = %zu\n", el.value, *(size_t*)((void*)stack + 56));
     }
 
     StackDestructor(stack);
