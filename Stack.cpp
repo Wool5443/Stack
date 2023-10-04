@@ -296,8 +296,6 @@ ErrorCode Push(Stack* stack, StackElement_t value)
     _reHashify(stack);
     #endif
 
-    stack->data[0] = -5;
-
     return EVERYTHING_FINE;
 }
 
