@@ -4,7 +4,7 @@
 
 typedef int StackElement_t;
 
-#define STACK_PRINTF_SPECIFIER "%d"
+#define STACK_EL_SPECIFIER "%d"
 
 const size_t STACK_GROW_FACTOR = 2;
 

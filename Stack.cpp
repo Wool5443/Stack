@@ -263,7 +263,7 @@ ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error)
         else
             fprintf(where, " ");
 
-        fprintf(where, "[%zu] = " STACK_PRINTF_SPECIFIER "\n", i, data[i]);
+        fprintf(where, "[%zu] = " STACK_EL_SPECIFIER "\n", i, data[i]);
     }
 
 
