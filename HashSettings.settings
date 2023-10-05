@@ -1,6 +1,6 @@
-#define HASH_PROTECTION
-#define CANARY_PROTECTION
-#define DEBUG
+// #define HASH_PROTECTION
+// #define CANARY_PROTECTION
+// #define DEBUG
 
 typedef int StackElement_t;
 

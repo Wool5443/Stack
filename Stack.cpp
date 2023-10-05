@@ -316,8 +316,8 @@ StackElementOption Pop(Stack* stack)
     if (stack->size == 0)
         return {POISON, ERROR_INDEX_OUT_OF_BOUNDS};
 
-    size_t size = stack->size - 1;
     StackElement_t* data = stack->data;
+    size_t size = stack->size - 1;
 
     StackElement_t value = data[size];
     

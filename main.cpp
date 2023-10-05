@@ -30,7 +30,7 @@ int main()
     {
         StackElementOption el = Pop(stack);
         if (!el.error)
-            printf("%d, cap = %zu\n", el.value, *(size_t*)((void*)stack + 56));
+            printf("%d\n", el.value);
     }
 
     StackDestructor(stack);
