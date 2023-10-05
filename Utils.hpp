@@ -21,15 +21,29 @@ enum ErrorCode
 {
   EVERYTHING_FINE = 0, ERROR_NULLPTR, ERROR_BAD_NUMBER, ERROR_BAD_FILE, ERROR_OVERLAP,
   ERROR_INDEX_OUT_OF_BOUNDS, ERROR_NO_MEMORY, ERROR_NO_COMPARATOR, ERROR_BAD_SIZE,
-  ERROR_BAD_VALUE, ERROR_DEAD_CANARY, ERROR_BAD_HASH
+  ERROR_BAD_VALUE, ERROR_DEAD_CANARY, ERROR_BAD_HASH, ERROR_ZERO_DIVISION
 };
 
 static const char* ERROR_CODE_NAMES[] =
 {
   "EVERYTHING_FINE", "ERROR_NULLPTR", "ERROR_BAD_NUMBER", "ERROR_BAD_FILE", "ERROR_OVERLAP",
   "ERROR_INDEX_OUT_OF_BOUNDS", "ERROR_NO_MEMORY", "ERROR_NO_COMPARATOR", "ERROR_BAD_SIZE",
-  "ERROR_BAD_VALUE", "ERROR_DEAD_CANARY", "ERROR_BAD_HASH"
+  "ERROR_BAD_VALUE", "ERROR_DEAD_CANARY", "ERROR_BAD_HASH", "ERROR_ZERO_DIVISION"
 };
+
+#define RETURN_ERROR(error)                                                                     \
+do                                                                                              \
+{                                                                                               \
+   __typeof__(error) _error = error;                                                            \
+   if (_error)                                                                                  \
+      return _error;                                                                            \
+} while (0);
+
+#ifdef DEBUG
+    #define ON_DEBUG(...) __VA_ARGS__
+#else
+    #define ON_DEBUG(...)
+#endif
 
 /**
  * @brief typedef for compare functions used in universal quicksort.

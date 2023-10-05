@@ -5,28 +5,15 @@ typedef unsigned int hash_t;
 
 static const hash_t HASH_SEED = 0xBEBDA;
 
-#define RETURN_ERROR(error, stack)                                                       \
+#define _STACK_DUMP_ERROR_DEBUG(filePath, stack, error)                                  \
 do                                                                                       \
 {                                                                                        \
-    __typeof__(error) _tempError = error;                                                \
-    __typeof__(stack) _tempStack = stack;                                                \
-                                                                                         \
-    if (_tempError)                                                                      \
-    {                                                                                    \
-        _STACK_DUMP_RETURN_ERROR(logFilePath, _tempStack, _tempError);                   \
-        return _tempError;                                                               \
-    }                                                                                    \
-} while (0);
-
-#define _STACK_DUMP_RETURN_ERROR(filePath, stack, error)                                 \
-do                                                                                       \
-{                                                                                        \
-    if (stack)                                                                           \
+    if (error && stack)                                                                  \
     {                                                                                    \
         Owner _caller = {__FILE__, __LINE__, __func__};                                  \                  
-        FILE* _logFile = fopen(filePath, "a");                                              \
+        FILE* _logFile = fopen(filePath, "a");                                           \
         if (_logFile)                                                                    \
-            _stackDump(_logFile, stack, &_caller, error);                        \
+            _stackDump(_logFile, stack, &_caller, error);                                \
         fclose(_logFile);                                                                \
     }                                                                                    \
 } while (0);
@@ -149,7 +136,8 @@ ErrorCode StackDestructor(Stack* stack)
 
     ErrorCode error = CheckStackIntegrity(stack);
 
-    RETURN_ERROR(error, stack);
+    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+    RETURN_ERROR(error);
 
     if (stack->data == NULL)
         error = ERROR_NO_MEMORY;
@@ -168,13 +156,13 @@ ErrorCode StackDestructor(Stack* stack)
     stack->owner = {};
 
     #ifdef HASH_PROTECTION
-    stack->hashData = POISON;
-    stack->hashStack = POISON;
+        stack->hashData = POISON;
+        stack->hashStack = POISON;
     #endif
 
     #ifdef CANARY_PROTECTION
-    stack->leftCanary = POISON;
-    stack->rightCanary = POISON;
+        stack->leftCanary = POISON;
+        stack->rightCanary = POISON;
     #endif
     
     free((void*)stack);
@@ -191,12 +179,18 @@ ErrorCode CheckStackIntegrity(Stack* stack)
     if (!stack->data)
         return ERROR_NO_MEMORY;
     
+    ErrorCode error = EVERYTHING_FINE;
+
     #ifdef CANARY_PROTECTION
-        RETURN_ERROR(_checkCanary(stack), stack);
+        ErrorCode canaryError = _checkCanary(stack);
+        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        RETURN_ERROR(canaryError);
     #endif
 
     #ifdef HASH_PROTECTION
-        return _checkHash(stack);
+        error = _checkHash(stack);
+        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+        RETURN_ERROR(error);
     #endif
     
     return EVERYTHING_FINE;
@@ -268,10 +262,13 @@ ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error)
 
 
     #ifdef CANARY_PROTECTION
-    fprintf(where, "    Right data canary = %zu (should be %zu)\n}\n\n",
-            *_getRightDataCanaryPtr(stack->data, stack->realDataSize), _CANARY);
+        fprintf(where, "    Right data canary = %zu (should be %zu)\n}\n\n",
+                *_getRightDataCanaryPtr(stack->data, stack->realDataSize), _CANARY);
+                
+        ErrorCode canaryError = _checkCanary(stack);
 
-    RETURN_ERROR(_checkCanary(stack), stack);
+        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        RETURN_ERROR(canaryError);
     #endif
 
     return EVERYTHING_FINE;
@@ -281,15 +278,23 @@ ErrorCode Push(Stack* stack, StackElement_t value)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
-    RETURN_ERROR(CheckStackIntegrity(stack), stack);
+    ErrorCode error = CheckStackIntegrity(stack);
 
-    RETURN_ERROR(_stackRealloc(stack), stack);
+    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+    RETURN_ERROR(error);
+
+    error = _stackRealloc(stack);
+
+    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+    RETURN_ERROR(error);
 
     stack->data[stack->size] = value;
     stack->size++;
 
     #ifdef CANARY_PROTECTION
-    RETURN_ERROR(_checkCanary(stack), stack);
+        ErrorCode canaryError = _checkCanary(stack);
+        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        RETURN_ERROR(canaryError);
     #endif
 
     #ifdef HASH_PROTECTION
@@ -302,6 +307,8 @@ ErrorCode Push(Stack* stack, StackElement_t value)
 StackElementOption Pop(Stack* stack)
 {
     ErrorCode error = CheckStackIntegrity(stack);
+
+    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
 
     if (error)
         return {POISON, error};
@@ -320,15 +327,16 @@ StackElementOption Pop(Stack* stack)
 
     error = _stackRealloc(stack);
 
+    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
     if (error)
         return {value, error};
 
     #ifdef CANARY_PROTECTION
-    error = _checkCanary(stack);
+        ErrorCode canaryError = _checkCanary(stack);
+        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        if (canaryError)
+            return {POISON, canaryError};
     #endif
-
-    if (error)
-        return {POISON, error};
 
     #ifdef HASH_PROTECTION
     error = _reHashify(stack);
@@ -356,23 +364,29 @@ static ErrorCode _stackRealloc(Stack* stack)
         #ifdef CANARY_PROTECTION
             oldData = (StackElement_t*)((void*)oldData - sizeof(canary_t));
             newDataSize += 2 * sizeof(canary_t);
-        #endif
 
-        #ifdef CANARY_PROTECTION
-        canary_t* oldRightCanaryPtr = _getRightDataCanaryPtr(stack->data, stack->realDataSize);
-        canary_t oldRightCanary     = *oldRightCanaryPtr;
+            canary_t* oldRightCanaryPtr = _getRightDataCanaryPtr(stack->data, stack->realDataSize);
+            canary_t  oldRightCanary    = *oldRightCanaryPtr;
 
-        *oldRightCanaryPtr = 0;
+            *oldRightCanaryPtr = 0;
         #endif
 
         StackElement_t* newData = (StackElement_t*)realloc((void*)oldData, newDataSize);
 
+        if (newData == NULL)
+        {
+            ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, ERROR_NO_MEMORY));
+            
+            #ifdef CANARY_PROTECTION
+            *oldRightCanaryPtr = oldRightCanary;
+            #endif
+
+            return ERROR_NO_MEMORY;
+        }
+
         #ifdef CANARY_PROTECTION
         newData = (StackElement_t*)((void*)newData + sizeof(canary_t));
         #endif
-
-        if (newData == NULL)
-            return ERROR_NO_MEMORY;
 
         #ifdef CANARY_PROTECTION
         *_getRightDataCanaryPtr(newData, newDataSize) = oldRightCanary;
@@ -387,7 +401,9 @@ static ErrorCode _stackRealloc(Stack* stack)
     }
 
     #ifdef CANARY_PROTECTION
-    RETURN_ERROR(_checkCanary(stack), stack);
+        ErrorCode canaryError = _checkCanary(stack);
+        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        RETURN_ERROR(canaryError);
     #endif
 
     return EVERYTHING_FINE;
