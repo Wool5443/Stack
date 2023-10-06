@@ -12,7 +12,6 @@ do                                                                              
     {                                                                                    \
         Owner _caller = {__FILE__, __LINE__, __func__};                                  \                  
         FILE* _logFile = fopen(filePath, "w");                                           \
-        setvbuf(_logFile, NULL, _IONBF, 0);                                              \
         if (_logFile)                                                                    \
             _stackDump(_logFile, stack, &_caller, error);                                \
         fclose(_logFile);                                                                \
@@ -199,6 +198,7 @@ ErrorCode CheckStackIntegrity(Stack* stack)
 
 ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error)
 {
+    setvbuf(_logFile, NULL, _IONBF, 0);
     fprintf(where,
             "Stack[%p] from %s(%zu) %s()\n"
             "called from %s(%zu) %s()\n"
