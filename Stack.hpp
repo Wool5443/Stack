@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "Utils.hpp"
 
-#include "HashSettings.settings"
+#include "Stack.settings"
 
 typedef size_t canary_t;
 

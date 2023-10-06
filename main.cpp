@@ -26,11 +26,17 @@ int main()
         }
     }
 
+    *(int*)((void*)stack + 60) = 100;
+
     for (int i = 0; i < 9; i++)
     {
         StackElementOption el = Pop(stack);
-        if (!el.error)
-            printf("%d\n", el.value);
+        if (el.error != EVERYTHING_FINE)
+        {
+            fprintf(stderr, "ERROR\n");
+            return el.error;
+        }
+        printf("%d\n", el.value);
     }
 
     StackDestructor(stack);

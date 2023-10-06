@@ -136,7 +136,7 @@ ErrorCode StackDestructor(Stack* stack)
 
     ErrorCode error = CheckStackIntegrity(stack);
 
-    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
     RETURN_ERROR(error);
 
     if (stack->data == NULL)
@@ -183,13 +183,13 @@ ErrorCode CheckStackIntegrity(Stack* stack)
 
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
-        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
         RETURN_ERROR(canaryError);
     #endif
 
     #ifdef HASH_PROTECTION
         error = _checkHash(stack);
-        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
         RETURN_ERROR(error);
     #endif
     
@@ -258,18 +258,23 @@ ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error)
             fprintf(where, " ");
 
         fprintf(where, "[%zu] = " STACK_EL_SPECIFIER "\n", i, data[i]);
+        fflush(where);
     }
 
 
     #ifdef CANARY_PROTECTION
-        fprintf(where, "    Right data canary = %zu (should be %zu)\n}\n\n",
+        fprintf(where, "    Right data canary = %zu (should be %zu)\n",
                 *_getRightDataCanaryPtr(stack->data, stack->realDataSize), _CANARY);
                 
         ErrorCode canaryError = _checkCanary(stack);
 
-        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
         RETURN_ERROR(canaryError);
     #endif
+
+    fprintf(where, "}\n\n\n");
+
+    fflush(where);
 
     return EVERYTHING_FINE;
 }
@@ -280,12 +285,12 @@ ErrorCode Push(Stack* stack, StackElement_t value)
 
     ErrorCode error = CheckStackIntegrity(stack);
 
-    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
     RETURN_ERROR(error);
 
     error = _stackRealloc(stack);
 
-    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
     RETURN_ERROR(error);
 
     stack->data[stack->size] = value;
@@ -293,7 +298,7 @@ ErrorCode Push(Stack* stack, StackElement_t value)
 
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
-        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
         RETURN_ERROR(canaryError);
     #endif
 
@@ -308,7 +313,7 @@ StackElementOption Pop(Stack* stack)
 {
     ErrorCode error = CheckStackIntegrity(stack);
 
-    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
 
     if (error)
         return {POISON, error};
@@ -327,13 +332,13 @@ StackElementOption Pop(Stack* stack)
 
     error = _stackRealloc(stack);
 
-    ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error));
+    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
     if (error)
         return {value, error};
 
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
-        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
         if (canaryError)
             return {POISON, canaryError};
     #endif
@@ -375,7 +380,7 @@ static ErrorCode _stackRealloc(Stack* stack)
 
         if (newData == NULL)
         {
-            ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, ERROR_NO_MEMORY));
+            _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, ERROR_NO_MEMORY);
             
             #ifdef CANARY_PROTECTION
             *oldRightCanaryPtr = oldRightCanary;
@@ -402,7 +407,7 @@ static ErrorCode _stackRealloc(Stack* stack)
 
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
-        ON_DEBUG(_STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError));
+        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
         RETURN_ERROR(canaryError);
     #endif
 
