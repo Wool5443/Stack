@@ -198,6 +198,7 @@ ErrorCode CheckStackIntegrity(Stack* stack)
 
 ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error)
 {
+    setvbuf(where, NULL, _IONBF, 0);
     fprintf(where,
             "Stack[%p] from %s(%zu) %s()\n"
             "called from %s(%zu) %s()\n"
@@ -253,12 +254,9 @@ ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error)
         fprintf(where, "    ");
 
         if (data[i] != POISON)
-            fprintf(where, "*");
+            fprintf(where, "*[%zu] = " STACK_EL_SPECIFIER "\n", i, data[i]);
         else
-            fprintf(where, " ");
-
-        fprintf(where, "[%zu] = " STACK_EL_SPECIFIER "\n", i, data[i]);
-        fflush(where);
+            fprintf(where, " [%zu] = POISON\n", i);
     }
 
 
@@ -273,8 +271,6 @@ ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error)
     #endif
 
     fprintf(where, "}\n\n\n");
-
-    fflush(where);
 
     return EVERYTHING_FINE;
 }
