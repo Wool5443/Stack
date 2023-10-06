@@ -419,8 +419,7 @@ static ErrorCode _checkCanary(const Stack* stack)
 {
     if (stack->leftCanary != _CANARY ||
                stack->rightCanary != _CANARY ||
-               *_getLeftDataCanaryPtr(stack->data) != _CANARY ||
-               *_getRightDataCanaryPtr(stack->data, stack->realDataSize) != _CANARY)
+               *_getLeftDataCanaryPtr(stack->data) != _CANARY ||)
     {
         return ERROR_DEAD_CANARY;
     }
