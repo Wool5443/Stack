@@ -280,6 +280,7 @@ ErrorCode Push(Stack* stack, StackElement_t value)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
 
+    _reHashify(stack);
     ErrorCode error = CheckStackIntegrity(stack);
 
     _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
@@ -415,8 +416,8 @@ static ErrorCode _stackRealloc(Stack* stack)
 static ErrorCode _checkCanary(const Stack* stack)
 {
     if (stack->leftCanary != _CANARY ||
-               stack->rightCanary != _CANARY ||
-               *_getLeftDataCanaryPtr(stack->data) != _CANARY)
+               *_getLeftDataCanaryPtr(stack->data) != _CANARY ||
+               *_getRightDataCanaryPtr(stack->data) != _CANARY)
     {
         return ERROR_DEAD_CANARY;
     }
