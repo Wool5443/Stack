@@ -11,7 +11,8 @@ do                                                                              
     if (error && stack)                                                                  \
     {                                                                                    \
         Owner _caller = {__FILE__, __LINE__, __func__};                                  \                  
-        FILE* _logFile = fopen(filePath, "a");                                           \
+        FILE* _logFile = fopen(filePath, "w");                                           \
+        setvbuf(_logFile, NULL, _IONBF, 0);                                              \
         if (_logFile)                                                                    \
             _stackDump(_logFile, stack, &_caller, error);                                \
         fclose(_logFile);                                                                \
@@ -253,14 +254,10 @@ ErrorCode _stackDump(FILE* where, Stack* stack, Owner* caller, ErrorCode error)
         fprintf(where, "    ");
 
         if (data[i] != POISON)
-            fprintf(where, "*");
+            fprintf(where, "*[%zu] = " STACK_EL_SPECIFIER "\n", i, data[i]);
         else
-            fprintf(where, " ");
-
-        fprintf(where, "[%zu] = " STACK_EL_SPECIFIER "\n", i, data[i]);
-        fflush(where);
+            fprintf(where, " [%zu] = POISON\n", i);
     }
-
 
     #ifdef CANARY_PROTECTION
         fprintf(where, "    Right data canary = %zu (should be %zu)\n",
@@ -419,7 +416,7 @@ static ErrorCode _checkCanary(const Stack* stack)
 {
     if (stack->leftCanary != _CANARY ||
                stack->rightCanary != _CANARY ||
-               *_getLeftDataCanaryPtr(stack->data) != _CANARY ||)
+               *_getLeftDataCanaryPtr(stack->data) != _CANARY)
     {
         return ERROR_DEAD_CANARY;
     }
