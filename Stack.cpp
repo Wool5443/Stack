@@ -183,8 +183,6 @@ ErrorCode CheckStackIntegrity(Stack* stack)
 
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
-        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
-        RETURN_ERROR(canaryError);
     #endif
 
     #ifdef HASH_PROTECTION
@@ -416,8 +414,9 @@ static ErrorCode _stackRealloc(Stack* stack)
 static ErrorCode _checkCanary(const Stack* stack)
 {
     if (stack->leftCanary != _CANARY ||
-               *_getLeftDataCanaryPtr(stack->data) != _CANARY ||
-               *_getRightDataCanaryPtr(stack->data) != _CANARY)
+        stack->rightCanary != _CANARY ||       
+        *_getLeftDataCanaryPtr(stack->data) != _CANARY ||
+        *_getRightDataCanaryPtr(stack->data) != _CANARY)
     {
         return ERROR_DEAD_CANARY;
     }
