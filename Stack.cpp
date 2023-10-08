@@ -291,8 +291,7 @@ ErrorCode Push(Stack* stack, StackElement_t value)
     _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
     RETURN_ERROR(error);
 
-    stack->data[stack->size] = value;
-    stack->size++;
+    stack->data[stack->size++] = value;
 
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
@@ -319,14 +318,11 @@ StackElementOption Pop(Stack* stack)
     if (stack->size == 0)
         return {POISON, ERROR_INDEX_OUT_OF_BOUNDS};
 
-    StackElement_t* data = stack->data;
-    size_t size = stack->size - 1;
-
-    StackElement_t value = data[size];
+    StackElement_t value = stack->data[stack->size - 1];
     
-    data[size] = POISON;
+    stack->data[stack->size] = POISON;
 
-    stack->size = size;
+    stack->size--;
 
     error = _stackRealloc(stack);
 
@@ -348,6 +344,17 @@ StackElementOption Pop(Stack* stack)
     return {value, error};
 }
 
+/**
+ * @brief Performs stack reallocation if needed.
+ * 
+ * It increases stack's size if @see STACK_GROW_FACTOR if stack.size == stack.capacity.
+ * It shrinks the stack if stack.size <= stack.capacity in @see STACK_GROW_FACTOR ** 2.
+ * Otherwise it does nothing.
+ * 
+ * @param [in] stack - to resize.
+ * 
+ * @return @see ErrorCode.
+*/
 static ErrorCode _stackRealloc(Stack* stack)
 {
     MyAssertSoft(stack, ERROR_NULLPTR);
