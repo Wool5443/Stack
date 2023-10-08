@@ -270,13 +270,6 @@ ErrorCode _stackDump(FILE* where, Stack* stack, SourceCodePosition* caller, Erro
 
     fprintf(where, "}\n\n\n");
 
-    #ifdef CANARY_PROTECTION
-        ErrorCode canaryError = _checkCanary(stack);
-
-        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
-        RETURN_ERROR(canaryError);
-    #endif
-
     return EVERYTHING_FINE;
 }
 
