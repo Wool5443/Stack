@@ -318,11 +318,11 @@ StackElementOption Pop(Stack* stack)
     if (stack->size == 0)
         return {POISON, ERROR_INDEX_OUT_OF_BOUNDS};
 
-    StackElement_t value = stack->data[stack->size - 1];
+    stack->size--;
+
+    StackElement_t value = stack->data[stack->size];
     
     stack->data[stack->size] = POISON;
-
-    stack->size--;
 
     error = _stackRealloc(stack);
 
