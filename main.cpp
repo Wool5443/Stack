@@ -26,8 +26,6 @@ int main()
         }
     }
 
-    *(int*)((void*)stack + 60) = 100;
-
     for (int i = 0; i < 9; i++)
     {
         StackElementOption el = Pop(stack);
