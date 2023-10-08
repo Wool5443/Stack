@@ -253,7 +253,6 @@ ErrorCode _stackDump(FILE* where, Stack* stack, SourceCodePosition* caller, Erro
 
         if (data[i] != POISON)
             fprintf(where, "*[%zu] = " STACK_EL_SPECIFIER "\n", i, data[i]);
-            fprintf(where, "*[%zu] = " STACK_EL_SPECIFIER "\n", i, data[i]);
         else
             fprintf(where, " [%zu] = POISON\n", i);
     }
