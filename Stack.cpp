@@ -210,24 +210,24 @@ ErrorCode _stackDump(FILE* where, Stack* stack, SourceCodePosition* caller, Erro
 
         fprintf(where, "Data hash = %u", stack->hashData);
         if (stack->hashData != dataHash)
-            fprintf(where, " (should be %u)", dataHash);
+            fprintf(where, " INVALID!!! SHOULD BE %u", dataHash);
         fprintf(where, "\n");
 
         fprintf(where, "Stack hash = %u", stack->hashStack);
         if (stack->hashStack != stackHash)
-            fprintf(where, " (should be %u)", stackHash);
+            fprintf(where, " INVALID!!! SHOULD BE %u", stackHash);
         fprintf(where, "\n");
     #endif
 
     #ifdef CANARY_PROTECTION
         fprintf(where, "Left stack canary = %zu", stack->leftCanary);
         if (stack->leftCanary != _CANARY)
-            fprintf(where, " (should be %zu)", _CANARY);
+            fprintf(where, " INVALID!!! SHOULD BE %zu", _CANARY);
         fprintf(where, "\n");
 
         fprintf(where, "Right stack canary = %zu", stack->rightCanary);
         if (stack->rightCanary != _CANARY)
-            fprintf(where, " (should be %zu)", _CANARY);
+            fprintf(where, " INVALID!!! SHOULD BE %zu", _CANARY);
         fprintf(where, "\n");
     #endif
 
@@ -240,7 +240,7 @@ ErrorCode _stackDump(FILE* where, Stack* stack, SourceCodePosition* caller, Erro
         canary_t leftDataCanary = *_getLeftDataCanaryPtr(stack->data);
         fprintf(where, "    Left data canary = %zu", leftDataCanary);
         if (leftDataCanary != _CANARY)
-            fprintf(where, " (should be %zu)", _CANARY);
+            fprintf(where, " INVALID!!! SHOULD BE %zu", _CANARY);
         fprintf(where, "\n");
     #endif
 
@@ -261,7 +261,7 @@ ErrorCode _stackDump(FILE* where, Stack* stack, SourceCodePosition* caller, Erro
         canary_t rightDataCanary = *_getRightDataCanaryPtr(stack->data, stack->realDataSize);
         fprintf(where, "    Right data canary = %zu", rightDataCanary);
         if (leftDataCanary != _CANARY)
-            fprintf(where, " (should be %zu)", _CANARY);
+            fprintf(where, " INVALID!!! SHOULD BE %zu", _CANARY);
         fprintf(where, "\n");
     #endif
 
