@@ -181,14 +181,12 @@ ErrorCode CheckStackIntegrity(Stack* stack)
     if (!stack->data)
         return ERROR_NO_MEMORY;
     
-    ErrorCode error = EVERYTHING_FINE;
-
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
     #endif
 
     #ifdef HASH_PROTECTION
-        error = _checkHash(stack);
+        ErrorCode error = _checkHash(stack);
         _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
         RETURN_ERROR(error);
     #endif
