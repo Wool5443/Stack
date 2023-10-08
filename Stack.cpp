@@ -198,6 +198,11 @@ ErrorCode CheckStackIntegrity(Stack* stack)
 
 ErrorCode _stackDump(FILE* where, Stack* stack, SourceCodePosition* caller, ErrorCode error)
 {
+    MyAssertSoft(stack, ERROR_NULLPTR);
+    MyAssertSoft(caller, ERROR_NULLPTR);
+
+    MyAssertSoft(where, ERROR_BAD_FILE);
+
     const size_t maxStackValues = 4096;
 
     fprintf(where, "Stack[%p] from %s(%zu) %s()\n", stack, stack->origin.fileName, stack->origin.line, stack->origin.name);
