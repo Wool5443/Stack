@@ -313,6 +313,8 @@ ErrorCode Push(Stack* stack, StackElement_t value)
 
 StackElementOption Pop(Stack* stack)
 {
+    MyAssertSoft(stack, ERROR_NULLPTR);
+
     ErrorCode error = CheckStackIntegrity(stack);
 
     _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
