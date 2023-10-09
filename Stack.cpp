@@ -21,10 +21,19 @@ do                                                                              
 } while (0);
 
 #ifdef CANARY_PROTECTION
-    static size_t _getRandomCanary()
+    static canary_t _getRandomCanary()
     {
         srand((unsigned int)time(NULL));
-        return ((canary_t)rand() << 32) + (canary_t)rand();
+
+        union _canaryTemp
+        {
+            canary_t canary;
+            uint randNumbers[2];
+        } _tCnry = {};
+        _tCnry.randNumbers[0] = (uint)rand();
+        _tCnry.randNumbers[1] = (uint)rand();
+
+        return _tCnry.canary;
     }
 
     static const size_t _CANARY = _getRandomCanary();
@@ -128,6 +137,8 @@ StackOption _stackInit(SourceCodePosition* origin)
     #ifdef HASH_PROTECTION
     _reHashify(stack);
     #endif
+
+    printf("canary = %zu\n", _CANARY);
 
     return {stack, error};
 }
