@@ -6,17 +6,33 @@ typedef unsigned int hash_t;
 
 static const hash_t HASH_SEED = 0xBEBDA;
 
-#define _STACK_DUMP_ERROR_DEBUG(filePath, stack, error)                                  \
+static FILE* _getLogFile()
+{
+    FILE* _logFile = fopen(logFilePath, "w");
+    
+    if (!_logFile)
+    {
+        SetConsoleColor(stderr, COLOR_RED);
+        fprintf(stderr, "ERROR!!! COULDN'T OPEN LOG FILE!!!!\n");
+        SetConsoleColor(stderr, COLOR_WHITE);
+
+        return NULL;
+    }
+
+    setvbuf(_logFile, NULL, _IONBF, 0);
+
+    return _logFile;
+}
+
+static FILE* LOG_FILE = _getLogFile();
+
+#define _STACK_DUMP_ERROR_DEBUG(stack, error)                                            \
 do                                                                                       \
 {                                                                                        \
-    if (error && stack)                                                                  \
+    if (error && stack && LOG_FILE)                                                      \
     {                                                                                    \
         SourceCodePosition _caller = {__FILE__, __LINE__, __func__};                     \                  
-        FILE* _logFile = fopen(filePath, "w");                                           \
-        setvbuf(_logFile, NULL, _IONBF, 0);                                              \
-        if (_logFile)                                                                    \
-            _stackDump(_logFile, stack, &_caller, error);                                \
-        fclose(_logFile);                                                                \
+        _stackDump(LOG_FILE, stack, &_caller, error);                                    \
     }                                                                                    \
 } while (0);
 
@@ -110,16 +126,6 @@ StackOption _stackInit(SourceCodePosition* origin)
 
     StackElement_t* data = (StackElement_t*)calloc(realDataSize, 1);
 
-    #ifdef CANARY_PROTECTION
-    data = (StackElement_t*)((void*)data + sizeof(canary_t));
-    #endif
-
-    #ifdef CANARY_PROTECTION
-    *_getLeftDataCanaryPtr(data) = _CANARY;
-
-    *_getRightDataCanaryPtr(data, realDataSize) = _CANARY;
-    #endif
-
     ErrorCode error = EVERYTHING_FINE;
     if (!data)
     {
@@ -127,6 +133,19 @@ StackOption _stackInit(SourceCodePosition* origin)
         stack->capacity = 0;
         realDataSize = 0;
     }
+
+    #ifdef CANARY_PROTECTION
+    if (data)
+        data = (StackElement_t*)((void*)data + sizeof(canary_t));
+    #endif
+
+    #ifdef CANARY_PROTECTION
+    if (data)
+    {
+        *_getLeftDataCanaryPtr(data) = _CANARY;
+        *_getRightDataCanaryPtr(data, realDataSize) = _CANARY;
+    }
+    #endif
 
     for (size_t i = 0; i < stack->capacity; i++)
         data[i] = POISON;
@@ -143,11 +162,9 @@ StackOption _stackInit(SourceCodePosition* origin)
 
 ErrorCode StackDestructor(Stack* stack)
 {
-    MyAssertSoft(stack, ERROR_NULLPTR);
-
     ErrorCode error = CheckStackIntegrity(stack);
 
-    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
+    _STACK_DUMP_ERROR_DEBUG(stack, error);
     RETURN_ERROR(error);
 
     if (stack->data == NULL)
@@ -192,11 +209,13 @@ ErrorCode CheckStackIntegrity(Stack* stack)
     
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
+        _STACK_DUMP_ERROR_DEBUG(stack, canaryError);
+        RETURN_ERROR(canaryError);
     #endif
 
     #ifdef HASH_PROTECTION
         ErrorCode error = _checkHash(stack);
-        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
+        _STACK_DUMP_ERROR_DEBUG(stack, error);
         RETURN_ERROR(error);
     #endif
     
@@ -284,23 +303,21 @@ ErrorCode _stackDump(FILE* where, Stack* stack, SourceCodePosition* caller, Erro
 
 ErrorCode Push(Stack* stack, StackElement_t value)
 {
-    MyAssertSoft(stack, ERROR_NULLPTR);
-
     ErrorCode error = CheckStackIntegrity(stack);
 
-    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
+    _STACK_DUMP_ERROR_DEBUG(stack, error);
     RETURN_ERROR(error);
 
     error = _stackRealloc(stack);
 
-    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
+    _STACK_DUMP_ERROR_DEBUG(stack, error);
     RETURN_ERROR(error);
 
     stack->data[stack->size++] = value;
 
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
-        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
+        _STACK_DUMP_ERROR_DEBUG(stack, canaryError);
         RETURN_ERROR(canaryError);
     #endif
 
@@ -313,11 +330,9 @@ ErrorCode Push(Stack* stack, StackElement_t value)
 
 StackElementOption Pop(Stack* stack)
 {
-    MyAssertSoft(stack, ERROR_NULLPTR);
-
     ErrorCode error = CheckStackIntegrity(stack);
 
-    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
+    _STACK_DUMP_ERROR_DEBUG(stack, error);
 
     if (error)
         return {POISON, error};
@@ -333,13 +348,13 @@ StackElementOption Pop(Stack* stack)
 
     error = _stackRealloc(stack);
 
-    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
+    _STACK_DUMP_ERROR_DEBUG(stack, error);
     if (error)
         return {value, error};
 
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
-        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
+        _STACK_DUMP_ERROR_DEBUG(stack, canaryError);
         if (canaryError)
             return {POISON, canaryError};
     #endif
@@ -392,7 +407,7 @@ static ErrorCode _stackRealloc(Stack* stack)
 
         if (newData == NULL)
         {
-            _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, ERROR_NO_MEMORY);
+            _STACK_DUMP_ERROR_DEBUG(stack, ERROR_NO_MEMORY);
             
             #ifdef CANARY_PROTECTION
             *oldRightCanaryPtr = oldRightCanary;
@@ -419,7 +434,7 @@ static ErrorCode _stackRealloc(Stack* stack)
 
     #ifdef CANARY_PROTECTION
         ErrorCode canaryError = _checkCanary(stack);
-        _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, canaryError);
+        _STACK_DUMP_ERROR_DEBUG(stack, canaryError);
         RETURN_ERROR(canaryError);
     #endif
 
@@ -444,15 +459,11 @@ static ErrorCode _checkCanary(const Stack* stack)
 
 static canary_t* _getLeftDataCanaryPtr(const StackElement_t* data)
 {
-    MyAssertSoft(data, ERROR_NULLPTR);
-
     return (canary_t*)((void*)data - sizeof(canary_t));
 }
 
 static canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize)
 {
-    MyAssertSoft(data, ERROR_NULLPTR);
-
     return (canary_t*)((void*)data + realDataSize - 2 * sizeof(canary_t));
 }
 #endif
