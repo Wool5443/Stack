@@ -122,6 +122,14 @@ struct SourceCodePosition
 bool IsEqual(const double x1, const double x2);
 
 /**
+ * @brief swaps 2 elements a and b in memory.
+ * 
+ * @param [in] a, b - elements to swap.
+ * @param [in] size - size of the elements.
+*/
+void Swap(void* a, void* b, size_t size);
+
+/**
  * @brief Clears stdin.
  * 
  * @param [in] where - file stream which buffer to clean.
