@@ -305,13 +305,6 @@ ErrorCode Push(Stack* stack, StackElement_t value)
 
 StackElementOption Pop(Stack* stack)
 {
-    ErrorCode error = CheckStackIntegrity(stack);
-
-    _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
-
-    if (error)
-        return {POISON, error};
-
     if (stack->size == 0)
         return {POISON, ERROR_INDEX_OUT_OF_BOUNDS};
 
