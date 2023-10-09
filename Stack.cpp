@@ -314,7 +314,7 @@ StackElementOption Pop(Stack* stack)
     
     stack->data[stack->size] = POISON;
 
-    error = _stackRealloc(stack);
+    ErrorCode error = _stackRealloc(stack);
 
     _STACK_DUMP_ERROR_DEBUG(logFilePath, stack, error);
     if (error)
