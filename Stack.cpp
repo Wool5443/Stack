@@ -473,7 +473,7 @@ static ErrorCode _reHashify(Stack* stack)
 
 static hash_t _calculateDataHash(const Stack* stack)
 {
-    MyAssertSoft(data, ERROR_NULLPTR);
+    MyAssertSoft(stack, ERROR_NULLPTR);
 
     const void* data = (const void*)stack->data;
 
@@ -486,7 +486,7 @@ static hash_t _calculateDataHash(const Stack* stack)
 
 static hash_t _calculateStackHash(Stack* stack)
 {
-    MyAssertSoft(data, ERROR_NULLPTR);
+    MyAssertSoft(stack, ERROR_NULLPTR);
 
     hash_t oldHashData = stack->hashData;
     hash_t oldHashStack = stack->hashStack;
