@@ -429,6 +429,8 @@ static ErrorCode _stackRealloc(Stack* stack)
 #ifdef CANARY_PROTECTION
 static ErrorCode _checkCanary(const Stack* stack)
 {
+    MyAssertSoft(stack, ERROR_NULLPTR);
+
     if (stack->leftCanary != _CANARY ||
         stack->rightCanary != _CANARY ||       
         *_getLeftDataCanaryPtr(stack->data) != _CANARY ||
@@ -442,11 +444,15 @@ static ErrorCode _checkCanary(const Stack* stack)
 
 static canary_t* _getLeftDataCanaryPtr(const StackElement_t* data)
 {
+    MyAssertSoft(data, ERROR_NULLPTR);
+
     return (canary_t*)((void*)data - sizeof(canary_t));
 }
 
 static canary_t* _getRightDataCanaryPtr(const StackElement_t* data, size_t realDataSize)
 {
+    MyAssertSoft(data, ERROR_NULLPTR);
+
     return (canary_t*)((void*)data + realDataSize - 2 * sizeof(canary_t));
 }
 #endif
@@ -467,6 +473,8 @@ static ErrorCode _reHashify(Stack* stack)
 
 static hash_t _calculateDataHash(const Stack* stack)
 {
+    MyAssertSoft(data, ERROR_NULLPTR);
+
     const void* data = (const void*)stack->data;
 
     #ifdef CANARY_PROTECTION
@@ -478,6 +486,8 @@ static hash_t _calculateDataHash(const Stack* stack)
 
 static hash_t _calculateStackHash(Stack* stack)
 {
+    MyAssertSoft(data, ERROR_NULLPTR);
+
     hash_t oldHashData = stack->hashData;
     hash_t oldHashStack = stack->hashStack;
 
