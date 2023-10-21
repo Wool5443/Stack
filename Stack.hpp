@@ -59,7 +59,7 @@ do                                                                              
 {                                                                                        \
     if (stack)                                                                           \
     {                                                                                    \
-        SourceCodePosition _caller = {__FILE__, __LINE__, __func__};                     \                  
+        SourceCodePosition _caller = {__FILE__, __LINE__, __func__};                     \
         _stackDump(where, stack, &_caller, CheckStackIntegrity(stack));                  \
     }                                                                                    \
 } while (0);                        
