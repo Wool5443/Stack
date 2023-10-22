@@ -6,7 +6,7 @@
 
 int main()
 {
-    StackOption tempStack = StackInit();
+    StackResult tempStack = StackInit();
 
     if (tempStack.error != EVERYTHING_FINE)
     {
@@ -14,7 +14,7 @@ int main()
         return tempStack.error;
 
     }
-    Stack* stack = tempStack.stack;
+    Stack* stack = tempStack.value;
     for (int i = 0; i < 9; i++)
     {
         ErrorCode error = Push(stack, i);
@@ -28,7 +28,7 @@ int main()
 
     for (int i = 0; i < 9; i++)
     {
-        StackElementOption el = Pop(stack);
+        StackElementResult el = Pop(stack);
         if (el.error != EVERYTHING_FINE)
         {
             fprintf(stderr, "ERROR\n");
