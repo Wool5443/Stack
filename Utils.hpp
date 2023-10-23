@@ -54,9 +54,8 @@ do                                                                              
 #define RETURN_ERROR_RESULT(RESULT, POISON)                                                                         \
 do                                                                                                                  \
 {                                                                                                                   \
-    __typeof__(RESULT) _result = RESULT;                                                                            \
-    if (_result.error)                                                                                              \
-        return {POISON, _result.error};                                                                             \
+    if (RESULT.error)                                                                                              \
+        return {POISON, RESULT.error};                                                                             \
 } while (0)
 
 /**
