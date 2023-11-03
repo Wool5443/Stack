@@ -43,19 +43,19 @@ static const char* ERROR_CODE_NAMES[] =
     "ERROR_SYNTAX", "ERROR_WRONG_LABEL_SIZE", "ERROR_TOO_MANY_LABELS",
 };
 
-#define RETURN_ERROR(error)                                                                                         \
-do                                                                                                                  \
-{                                                                                                                   \
-    __typeof__(error) _error = error;                                                                               \
-    if (_error)                                                                                                     \
-        return _error;                                                                                              \
+#define RETURN_ERROR(error)                                                                                                 \
+do                                                                                                                          \
+{                                                                                                                           \
+    __typeof__(error) _error = error;                                                                                       \
+    if (_error)                                                                                                             \
+        return _error;                                                                                                      \
 } while (0)
 
-#define RETURN_ERROR_RESULT(result, poison)                                                                         \
-do                                                                                                                  \
-{                                                                                                                   \
-    if (result.error)                                                                                               \
-        return {poison, result.error};                                                                              \
+#define RETURN_ERROR_RESULT(result, poison)                                                                                 \
+do                                                                                                                          \
+{                                                                                                                           \
+    if (result.error)                                                                                                       \
+        return {poison, result.error};                                                                                      \
 } while (0)
 
 /**
