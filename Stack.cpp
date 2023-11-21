@@ -322,7 +322,7 @@ ErrorCode Push(Stack* stack, StackElement_t value)
     #endif
 
     #ifdef HASH_PROTECTION
-    _reHashify(stack);
+    // _reHashify(stack);
     #endif
 
     return EVERYTHING_FINE;
